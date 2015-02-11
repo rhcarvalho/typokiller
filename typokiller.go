@@ -67,8 +67,8 @@ func main() {
 Find comments in Go source files.
 
 Options:
-	-h --help  Show this usage help.
-	--version  Show version.`
+  -h --help  Show this usage help
+  --version  Show version`
 	arguments, _ := docopt.Parse(usage, nil, true, "typokiller 0.1", false)
 
 	w := json.NewEncoder(os.Stdout)

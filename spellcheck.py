@@ -24,7 +24,11 @@ def spellcheck(pkg):
         chkr.ignore_always(ident)
     for comment in pkg.get("Comments", []):
         chkr.set_text(comment.get("Text", ""))
-        spelling_errors = [OrderedDict([("Word", c.word), ("Offset", c.wordpos)]) for c in chkr]
+        spelling_errors = [OrderedDict([
+            ("Word", c.word),
+            ("Offset", c.wordpos),
+            ("Suggestions", c.suggest()),
+        ]) for c in chkr]
         if spelling_errors:
             comment["SpellingErrors"] = spelling_errors
             misspelled_comments.append(comment)

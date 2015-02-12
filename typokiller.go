@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"container/heap"
 	"encoding/json"
 	"fmt"
 	"go/ast"
@@ -196,6 +197,75 @@ func (t *TermboxUI) EditAll() {
 		}
 	}
 	t.NextUndefined()
+}
+
+func (t *TermboxUI) Apply() {
+	defer termbox.PollEvent()
+	t.Printer.fg = termbox.ColorGreen
+	t.Printer.Println("applying changes...")
+	termbox.Flush()
+	// Create a priority queue, put the items in it, and
+	// establish the priority queue (heap) invariants.
+	pq := make(PriorityQueue, len(t.SpellingErrors))
+	for i, se := range t.SpellingErrors {
+		pq[i] = &Item{
+			value:    se,
+			priority: se.Comment.Position.Offset + se.Offset,
+			index:    i,
+		}
+	}
+	heap.Init(&pq)
+
+	// Take the items out; they arrive in decreasing priority order.
+	for pq.Len() > 0 {
+		item := heap.Pop(&pq).(*Item)
+		se := item.value
+		if se.Action != nil && se.Action.Type == Replace {
+			pos := se.Comment.Position
+			t.Printer.Printf("%s:%d:%d '%s' -> '%s'\n",
+				pos.Filename, pos.Line, pos.Column,
+				se.Word, se.Action.Replacement)
+			termbox.Flush()
+		}
+	}
+}
+
+// An Item is something we manage in a priority queue.
+type Item struct {
+	value    *SpellingError // The value of the item; arbitrary.
+	priority int            // The priority of the item in the queue.
+	index    int            // The index of the item in the heap.
+}
+
+// A PriorityQueue implements heap.Interface and holds Items.
+type PriorityQueue []*Item
+
+func (pq PriorityQueue) Len() int { return len(pq) }
+
+func (pq PriorityQueue) Less(i, j int) bool {
+	return pq[i].priority > pq[j].priority
+}
+
+func (pq PriorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+	pq[i].index = i
+	pq[j].index = j
+}
+
+func (pq *PriorityQueue) Push(x interface{}) {
+	n := len(*pq)
+	item := x.(*Item)
+	item.index = n
+	*pq = append(*pq, item)
+}
+
+func (pq *PriorityQueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	item.index = -1 // for safety
+	*pq = old[0 : n-1]
+	return item
 }
 
 func (t *TermboxUI) ReadIntegerInRange(a, b int) int {
@@ -413,6 +483,8 @@ mainloop:
 					ui.EditAll()
 				case 'n':
 					ui.NextUndefined()
+				case 'a':
+					ui.Apply()
 				case 'q':
 					break mainloop
 				}

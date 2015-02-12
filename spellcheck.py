@@ -7,17 +7,6 @@ from enchant.checker import SpellChecker
 from enchant.tokenize import EmailFilter, URLFilter
 
 
-def spellcheck_packages(pkgs):
-    misspelled_packages = []
-    for pkg in pkgs:
-        misspelled_comments = spellcheck(pkg)
-        if misspelled_comments:
-            misspelled_packages.append(OrderedDict([
-                ("PackageName", pkg.get("PackageName", "")),
-                ("Comments", misspelled_comments),
-            ]))
-    return misspelled_packages
-
 def spellcheck(pkg):
     chkr = SpellChecker("en_US", filters=[EmailFilter, URLFilter])
     misspelled_comments = []
@@ -37,6 +26,11 @@ def spellcheck(pkg):
 
 
 if __name__ == "__main__":
-    pkgs = json.load(sys.stdin, object_pairs_hook=OrderedDict)
-    misspelled_packages = spellcheck_packages(pkgs)
-    print json.dumps(misspelled_packages, separators=(",", ":"))
+    for line in sys.stdin:
+        pkg = json.loads(line, object_pairs_hook=OrderedDict)
+        misspelled_comments = spellcheck(pkg)
+        if misspelled_comments:
+            print json.dumps(OrderedDict([
+                ("PackageName", pkg.get("PackageName", "")),
+                ("Comments", misspelled_comments),
+            ]), separators=(",", ":"))

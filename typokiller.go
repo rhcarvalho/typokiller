@@ -77,6 +77,8 @@ Options:
 		if err != nil {
 			log.Fatalln(err)
 		}
-		w.Encode(ReadDir(path))
+		for _, pkg := range ReadDir(path) {
+			w.Encode(pkg)
+		}
 	}
 }

@@ -21,9 +21,9 @@ def spellcheck_packages(pkgs):
 def spellcheck(pkg):
     chkr = SpellChecker("en_US", filters=[EmailFilter, URLFilter])
     misspelled_comments = []
-    for ident in pkg.get("Identifiers", []):
+    for ident in pkg.get("Identifiers") or []:
         chkr.ignore_always(ident)
-    for comment in pkg.get("Comments", []):
+    for comment in pkg.get("Comments") or []:
         chkr.set_text(comment.get("Text", ""))
         spelling_errors = [OrderedDict([
             ("Word", c.word),

@@ -148,7 +148,7 @@ func (t *TermboxUI) Replace() {
 	se := t.SpellingErrors[t.Index]
 	se.Action = &Action{
 		Type:        Replace,
-		Replacement: se.Suggestions[t.ReadIntegerInRange(1, len(se.Suggestions))]}
+		Replacement: se.Suggestions[t.ReadIntegerInRange(1, len(se.Suggestions))-1]}
 	t.NextUndefined()
 }
 
@@ -175,7 +175,7 @@ func (t *TermboxUI) IgnoreAll() {
 func (t *TermboxUI) ReplaceAll() {
 	se := t.SpellingErrors[t.Index]
 	word := se.Word
-	replacement := se.Suggestions[t.ReadIntegerInRange(1, len(se.Suggestions))]
+	replacement := se.Suggestions[t.ReadIntegerInRange(1, len(se.Suggestions))-1]
 	for i := t.Index; i < len(t.SpellingErrors); i++ {
 		se = t.SpellingErrors[i]
 		if se.Word == word && (se.Action == nil || se.Action.Type == Undefined) {

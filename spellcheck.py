@@ -4,6 +4,7 @@ import sys
 from collections import OrderedDict
 
 from enchant.checker import SpellChecker
+from enchant.tokenize import EmailFilter, URLFilter
 
 
 def spellcheck_packages(pkgs):
@@ -18,7 +19,7 @@ def spellcheck_packages(pkgs):
     return misspelled_packages
 
 def spellcheck(pkg):
-    chkr = SpellChecker("en_US")
+    chkr = SpellChecker("en_US", filters=[EmailFilter, URLFilter])
     misspelled_comments = []
     for ident in pkg.get("Identifiers", []):
         chkr.ignore_always(ident)

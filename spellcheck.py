@@ -14,7 +14,7 @@ def spellcheck_packages(pkgs):
         if misspelled_comments:
             misspelled_packages.append(OrderedDict([
                 ("PackageName", pkg.get("PackageName", "")),
-                ("MisspelledComments", misspelled_comments),
+                ("Comments", misspelled_comments),
             ]))
     return misspelled_packages
 

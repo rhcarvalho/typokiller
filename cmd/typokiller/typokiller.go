@@ -30,9 +30,9 @@ Commands:
 
 	if arguments["fix"].(bool) {
 		Fix()
+	} else {
+		Read(arguments["PATH"].([]string)...)
 	}
-
-	Read(arguments["PATH"].([]string)...)
 }
 
 // Read reads the documentation of Go packages in paths and outputs metadata to STDOUT.

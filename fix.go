@@ -1,9 +1,7 @@
 package typokiller
 
 import (
-	"container/heap"
 	"fmt"
-	"io/ioutil"
 	"strconv"
 	"strings"
 	"unicode"
@@ -124,7 +122,7 @@ func (t *FixUI) EditAll() {
 }
 
 func (t *FixUI) Apply() {
-	defer termbox.PollEvent()
+	defer termbox.PollEvent() // stay visible until user presses a key
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	w, h := termbox.Size()
 	drawRect(2, 2, w-4, h-4, 0xf7)
@@ -133,97 +131,17 @@ func (t *FixUI) Apply() {
 	fmt.Fprint(t, "applying changes")
 	termbox.Flush()
 
-	// Create a priority queue, put the items in it, and
-	// establish the priority queue (heap) invariants.
-	pq := make(PriorityQueue, len(t.Misspellings))
-	for i, m := range t.Misspellings {
-		pq[i] = &Item{
-			value:    m,
-			priority: m.Text.Position.Offset + m.Offset,
-			index:    i,
-		}
-	}
-	heap.Init(&pq)
+	status := make(chan string)
+	go Apply(t.Misspellings, status)
 
-	// Take the items out; they arrive in decreasing priority order.
-	for max := len(pq); max > 0; max-- {
-		item := heap.Pop(&pq).(*Item)
-		m := item.value
-		if m.Action.Type == Replace {
-			t.Printer.fg = termbox.ColorYellow
-			fmt.Fprint(t, ".")
-			pos := m.Text.Position
-
-			b, err := ioutil.ReadFile(pos.Filename)
-			if err != nil {
-				panic(err)
-			}
-			begin := pos.Offset + m.Offset
-			end := begin + len(m.Word)
-			found := string(b[begin:end])
-			if found == m.Word {
-				replaced := replaceSlice(b, begin, end, []byte(m.Action.Replacement)...)
-				ioutil.WriteFile(pos.Filename, replaced, 0644)
-			} else {
-				fmt.Fprintf(t, "%s != %s", found, m.Word)
-			}
-			termbox.Flush()
-		}
+	t.Printer.fg = termbox.ColorYellow
+	for s := range status {
+		fmt.Fprint(t, s)
+		termbox.Flush()
 	}
 	fmt.Fprint(t, "done")
+	t.Printer.ResetColors()
 	termbox.Flush()
-}
-
-func replaceSlice(slice []byte, begin, end int, repl ...byte) []byte {
-	total := len(slice) - (end - begin) + len(repl)
-	if total > cap(slice) {
-		newSlice := make([]byte, total)
-		copy(newSlice, slice)
-		slice = newSlice
-	}
-	originalLen := len(slice)
-	slice = slice[:total]
-	copy(slice[begin+len(repl):originalLen], slice[end:originalLen])
-	copy(slice[begin:begin+len(repl)], repl)
-	return slice
-}
-
-// An Item is something we manage in a priority queue.
-type Item struct {
-	value    *Misspelling // The value of the item; arbitrary.
-	priority int          // The priority of the item in the queue.
-	index    int          // The index of the item in the heap.
-}
-
-// A PriorityQueue implements heap.Interface and holds Items.
-type PriorityQueue []*Item
-
-func (pq PriorityQueue) Len() int { return len(pq) }
-
-func (pq PriorityQueue) Less(i, j int) bool {
-	return pq[i].priority > pq[j].priority
-}
-
-func (pq PriorityQueue) Swap(i, j int) {
-	pq[i], pq[j] = pq[j], pq[i]
-	pq[i].index = i
-	pq[j].index = j
-}
-
-func (pq *PriorityQueue) Push(x interface{}) {
-	n := len(*pq)
-	item := x.(*Item)
-	item.index = n
-	*pq = append(*pq, item)
-}
-
-func (pq *PriorityQueue) Pop() interface{} {
-	old := *pq
-	n := len(old)
-	item := old[n-1]
-	item.index = -1 // for safety
-	*pq = old[0 : n-1]
-	return item
 }
 
 func (t *FixUI) ReadIntegerInRange(a, b int) int {

@@ -28,34 +28,8 @@ Commands:
   fix        Reads spelling error information from STDIN and allows for interative patching`
 	arguments, _ := docopt.Parse(usage, nil, true, "typokiller 0.1", false)
 
-	// fix typos mode
 	if arguments["fix"].(bool) {
-		reader := bufio.NewReaderSize(os.Stdin, 64*1024*1024) // 64 MB
-		var misspellings []*typokiller.Misspelling
-		var err error
-		for {
-			line, err := reader.ReadBytes('\n')
-			if err != nil {
-				break
-			}
-
-			var pkg *typokiller.Package
-			if err = json.Unmarshal(line, &pkg); err != nil {
-				log.Fatalf("error: %v\nline: %s\n", err, line)
-			}
-
-			for _, text := range pkg.Documentation {
-				text.Package = pkg
-				for _, misspelling := range text.Misspellings {
-					misspelling.Text = text
-					misspellings = append(misspellings, misspelling)
-				}
-			}
-		}
-		if err != nil && err != io.EOF {
-			log.Fatalln(err)
-		}
-		typokiller.IFix(misspellings)
+		Fix()
 	}
 
 	Read(arguments["PATH"].([]string)...)
@@ -73,4 +47,35 @@ func Read(paths ...string) {
 			enc.Encode(pkg)
 		}
 	}
+}
+
+// Fix reads documentation metadata from STDIN and presents an interactive user
+// interface to perform actions on potential misspells.
+func Fix() {
+	reader := bufio.NewReaderSize(os.Stdin, 64*1024*1024) // 64 MB
+	var misspellings []*typokiller.Misspelling
+	var err error
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			break
+		}
+
+		var pkg *typokiller.Package
+		if err = json.Unmarshal(line, &pkg); err != nil {
+			log.Fatalf("error: %v\nline: %s\n", err, line)
+		}
+
+		for _, text := range pkg.Documentation {
+			text.Package = pkg
+			for _, misspelling := range text.Misspellings {
+				misspelling.Text = text
+				misspellings = append(misspellings, misspelling)
+			}
+		}
+	}
+	if err != nil && err != io.EOF {
+		log.Fatalln(err)
+	}
+	typokiller.IFix(misspellings)
 }

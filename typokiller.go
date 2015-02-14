@@ -209,9 +209,14 @@ func (t *TermboxUI) EditAll() {
 
 func (t *TermboxUI) Apply() {
 	defer termbox.PollEvent()
+	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+	w, h := termbox.Size()
+	drawRect(2, 2, w-4, h-4, 0xf7)
+	t.Printer.Reset()
 	t.Printer.fg = termbox.ColorGreen
-	t.Printer.Println("applying changes...")
+	t.Printer.Print("applying changes")
 	termbox.Flush()
+
 	// Create a priority queue, put the items in it, and
 	// establish the priority queue (heap) invariants.
 	pq := make(PriorityQueue, len(t.SpellingErrors))
@@ -229,6 +234,8 @@ func (t *TermboxUI) Apply() {
 		item := heap.Pop(&pq).(*Item)
 		se := item.value
 		if se.Action != nil && se.Action.Type == Replace {
+			t.Printer.fg = termbox.ColorYellow
+			t.Printer.Print(".")
 			pos := se.Comment.Position
 			t.Printer.Printf("%s:%d:%d '%s' -> '%s'\n",
 				pos.Filename, pos.Line, pos.Column,
@@ -236,6 +243,9 @@ func (t *TermboxUI) Apply() {
 			termbox.Flush()
 		}
 	}
+	t.Printer.Print("done")
+	termbox.Flush()
+}
 }
 
 // An Item is something we manage in a priority queue.

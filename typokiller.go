@@ -334,7 +334,7 @@ mainloop:
 					termbox.Flush()
 				}
 			default:
-				if unicode.IsPrint(ev.Ch) {
+				if unicode.IsPrint(ev.Ch) || ev.Key == termbox.KeySpace {
 					v = append(v, ev.Ch)
 					t.Printer.Print(string(ev.Ch))
 					termbox.Flush()

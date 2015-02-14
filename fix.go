@@ -2,6 +2,7 @@ package typokiller
 
 import (
 	"container/heap"
+	"fmt"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -19,9 +20,14 @@ type TermboxUI struct {
 func NewTermboxUI(misspellings []*Misspelling) *TermboxUI {
 	ui := &TermboxUI{
 		Misspellings: misspellings,
-		Printer:      &TermboxPrinter{left: 5, right: 5, top: 5, bottom: 5},
+		Printer:      NewTermboxPrinter(5, 5, 5, 5),
 	}
 	return ui
+}
+
+// Write implements the io.Writer interface.
+func (t *TermboxUI) Write(p []byte) (int, error) {
+	return t.Printer.Write(p)
 }
 
 func (t *TermboxUI) Next() {
@@ -44,7 +50,7 @@ func (t *TermboxUI) NextUndefined() {
 		}
 		if t.Index == start {
 			t.Printer.fg = termbox.ColorGreen
-			t.Printer.Println("all done")
+			fmt.Fprintln(t, "all done")
 			break
 		}
 	}
@@ -124,7 +130,7 @@ func (t *TermboxUI) Apply() {
 	drawRect(2, 2, w-4, h-4, 0xf7)
 	t.Printer.Reset()
 	t.Printer.fg = termbox.ColorGreen
-	t.Printer.Print("applying changes")
+	fmt.Fprint(t, "applying changes")
 	termbox.Flush()
 
 	// Create a priority queue, put the items in it, and
@@ -145,7 +151,7 @@ func (t *TermboxUI) Apply() {
 		m := item.value
 		if m.Action.Type == Replace {
 			t.Printer.fg = termbox.ColorYellow
-			t.Printer.Print(".")
+			fmt.Fprint(t, ".")
 			pos := m.Text.Position
 
 			b, err := ioutil.ReadFile(pos.Filename)
@@ -159,12 +165,12 @@ func (t *TermboxUI) Apply() {
 				replaced := replaceSlice(b, begin, end, []byte(m.Action.Replacement)...)
 				ioutil.WriteFile(pos.Filename, replaced, 0644)
 			} else {
-				t.Printer.Printf("%s != %s", found, m.Word)
+				fmt.Fprintf(t, "%s != %s", found, m.Word)
 			}
 			termbox.Flush()
 		}
 	}
-	t.Printer.Print("done")
+	fmt.Fprint(t, "done")
 	termbox.Flush()
 }
 
@@ -223,7 +229,7 @@ func (pq *PriorityQueue) Pop() interface{} {
 func (t *TermboxUI) ReadIntegerInRange(a, b int) int {
 start:
 	t.Printer.fg |= termbox.AttrBold
-	t.Printer.Printf("\nenter number in range [%d, %d]: ", a, b)
+	fmt.Fprintf(t, "\nenter number in range [%d, %d]: ", a, b)
 	t.Printer.ResetColors()
 	termbox.Flush()
 	t.Printer.fg = termbox.ColorMagenta
@@ -237,7 +243,7 @@ mainloop:
 			}
 			if ev.Ch >= '0' && ev.Ch <= '9' {
 				v = append(v, ev.Ch)
-				t.Printer.Print(string(ev.Ch))
+				fmt.Fprint(t, string(ev.Ch))
 				termbox.Flush()
 			}
 		case termbox.EventError:
@@ -247,7 +253,7 @@ mainloop:
 	t.Printer.ResetColors()
 	i, err := strconv.Atoi(string(v))
 	if err != nil || !(a <= i && i <= b) {
-		t.Printer.Println(" → invalid number, try again")
+		fmt.Fprintln(t, " → invalid number, try again")
 		termbox.Flush()
 		v = nil
 		goto start
@@ -257,7 +263,7 @@ mainloop:
 
 func (t *TermboxUI) ReadString() string {
 	t.Printer.fg |= termbox.AttrBold
-	t.Printer.Print("\nreplace with: ")
+	fmt.Fprint(t, "\nreplace with: ")
 	t.Printer.ResetColors()
 	termbox.Flush()
 	t.Printer.fg = termbox.ColorMagenta
@@ -273,14 +279,14 @@ mainloop:
 				if len(v) > 0 {
 					v = v[:len(v)-1]
 					t.Printer.x--
-					t.Printer.Print(" ")
+					fmt.Fprint(t, " ")
 					t.Printer.x--
 					termbox.Flush()
 				}
 			default:
 				if unicode.IsPrint(ev.Ch) || ev.Key == termbox.KeySpace {
 					v = append(v, ev.Ch)
-					t.Printer.Print(string(ev.Ch))
+					fmt.Fprint(t, string(ev.Ch))
 					termbox.Flush()
 				}
 			}
@@ -303,13 +309,13 @@ func (t *TermboxUI) Draw() {
 	tp := t.Printer
 	tp.Reset()
 
-	tp.Print("Spelling error ")
+	fmt.Fprint(t, "Spelling error ")
 	tp.Bold()
-	tp.Printf("%d", t.Index+1)
+	fmt.Fprintf(t, "%d", t.Index+1)
 	tp.ResetColors()
-	tp.Print(" of ")
+	fmt.Fprint(t, " of ")
 	tp.Bold()
-	tp.Printf("%d", len(t.Misspellings))
+	fmt.Fprintf(t, "%d", len(t.Misspellings))
 	tp.ResetColors()
 
 	m := t.Misspellings[t.Index]
@@ -317,77 +323,77 @@ func (t *TermboxUI) Draw() {
 
 	tp.SkipLines(2)
 	tp.Underline()
-	tp.Printf("%s:%d:%d\n", text.Position.Filename, text.Position.Line, text.Position.Column)
+	fmt.Fprintf(t, "%s:%d:%d\n", text.Position.Filename, text.Position.Line, text.Position.Column)
 
 	tp.SkipLines(1)
 	tmp := tp.y
 	tp.fg = 0xf0
-	tp.Println(text.Content)
+	fmt.Fprintln(t, text.Content)
 	tmp, tp.y = tp.y, tmp
 
 	tp.x += m.Offset - strings.LastIndex(text.Content[:m.Offset], "\n") - 1
 	tp.y += strings.Count(text.Content[:m.Offset], "\n")
 	tp.fg = termbox.ColorRed | termbox.AttrBold
-	tp.Print(m.Word)
+	fmt.Fprint(t, m.Word)
 	tp.ResetColors()
 	tp.y = tmp
 
 	tp.SkipLines(1)
-	tp.Print("Suggestions: ")
+	fmt.Fprint(t, "Suggestions: ")
 	for i, suggestion := range m.Suggestions {
 		if i > 0 {
-			tp.Print(", ")
+			fmt.Fprint(t, ", ")
 		}
-		tp.Printf("[%d] %s", i+1, suggestion)
+		fmt.Fprintf(t, "[%d] %s", i+1, suggestion)
 	}
 	tp.SkipLines(2)
 
-	tp.Print("Actions: ")
+	fmt.Fprint(t, "Actions: ")
 	tp.fg |= termbox.AttrUnderline
-	tp.Print("r")
+	fmt.Fprint(t, "r")
 	tp.ResetColors()
-	tp.Print("eplace, ")
+	fmt.Fprint(t, "eplace, ")
 	tp.fg |= termbox.AttrUnderline
-	tp.Print("R")
+	fmt.Fprint(t, "R")
 	tp.ResetColors()
-	tp.Print("eplace all, ")
+	fmt.Fprint(t, "eplace all, ")
 	tp.fg |= termbox.AttrUnderline
-	tp.Print("i")
+	fmt.Fprint(t, "i")
 	tp.ResetColors()
-	tp.Print("gnore, ")
+	fmt.Fprint(t, "gnore, ")
 	tp.fg |= termbox.AttrUnderline
-	tp.Print("I")
+	fmt.Fprint(t, "I")
 	tp.ResetColors()
-	tp.Print("gnore all, ")
+	fmt.Fprint(t, "gnore all, ")
 	tp.fg |= termbox.AttrUnderline
-	tp.Print("e")
+	fmt.Fprint(t, "e")
 	tp.ResetColors()
-	tp.Print("dit, ")
+	fmt.Fprint(t, "dit, ")
 	tp.fg |= termbox.AttrUnderline
-	tp.Print("E")
+	fmt.Fprint(t, "E")
 	tp.ResetColors()
-	tp.Print("dit all, ")
+	fmt.Fprint(t, "dit all, ")
 	tp.fg |= termbox.AttrUnderline
-	tp.Print("n")
+	fmt.Fprint(t, "n")
 	tp.ResetColors()
-	tp.Print("ext undefined, ")
+	fmt.Fprint(t, "ext undefined, ")
 	tp.fg |= termbox.AttrUnderline
-	tp.Print("a")
+	fmt.Fprint(t, "a")
 	tp.ResetColors()
-	tp.Print("pply, ")
+	fmt.Fprint(t, "pply, ")
 	tp.fg |= termbox.AttrUnderline
-	tp.Print("q")
+	fmt.Fprint(t, "q")
 	tp.ResetColors()
-	tp.Println("uit")
+	fmt.Fprintln(t, "uit")
 
 	if m.Action.Type != Undefined {
 		tp.SkipLines(1)
 		tp.fg = termbox.ColorBlue
 		switch m.Action.Type {
 		case Ignore:
-			tp.Println("ignored")
+			fmt.Fprintln(t, "ignored")
 		case Replace:
-			tp.Printf("replace with '%s'\n", m.Action.Replacement)
+			fmt.Fprintf(t, "replace with '%s'\n", m.Action.Replacement)
 		}
 		tp.ResetColors()
 	}

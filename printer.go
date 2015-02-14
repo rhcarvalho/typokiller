@@ -1,7 +1,7 @@
 package typokiller
 
 import (
-	"fmt"
+	"unicode/utf8"
 
 	termbox "github.com/nsf/termbox-go"
 )
@@ -15,52 +15,74 @@ type TermboxPrinter struct {
 	fg, bg      termbox.Attribute // foreground and background colors
 }
 
-func (tbp *TermboxPrinter) Reset() {
-	tbp.x = 0
-	tbp.y = 0
-	tbp.ResetColors()
+// NewTermboxPrinter creates a new TermboxPrinter.
+func NewTermboxPrinter(left, top, right, bottom int) *TermboxPrinter {
+	return &TermboxPrinter{left: left, top: top, right: right, bottom: bottom}
 }
 
-func (tbp *TermboxPrinter) Print(text string) {
-	for _, c := range text {
-		if c == '\n' {
-			tbp.x = 0
-			tbp.y++
-			continue
-		}
-		termbox.SetCell(tbp.left+tbp.x, tbp.top+tbp.y, c, tbp.fg, tbp.bg)
-		tbp.x++
-		w, _ := termbox.Size()
-		if tbp.x >= w-tbp.right-tbp.left-2 {
-			termbox.SetCell(tbp.left+tbp.x+1, tbp.top+tbp.y, '⏎', termbox.ColorWhite, termbox.ColorRed)
-			tbp.SkipLines(1)
-		}
+// Reset resets the printer to its initial state.
+func (tp *TermboxPrinter) Reset() {
+	tp.x = 0
+	tp.y = 0
+	tp.ResetColors()
+}
+
+// ResetColors resets the printer colors to their default values.
+func (tp *TermboxPrinter) ResetColors() {
+	tp.fg = termbox.ColorDefault
+	tp.bg = termbox.ColorDefault
+}
+
+// Write implements the io.Writer interface.
+func (tp *TermboxPrinter) Write(p []byte) (n int, err error) {
+	// TODO reshape bytes to fit screen width before proceeding
+	for len(p) > 0 {
+		r, size := utf8.DecodeRune(p)
+		tp.WriteRune(r)
+		p = p[size:]
+		n += size
 	}
+	return
 }
 
-func (tbp *TermboxPrinter) Println(text string) {
-	tbp.Print(text)
-	tbp.Print("\n")
+// WriteRune prints a single rune in the current printer position and advance
+// one character.
+func (tp *TermboxPrinter) WriteRune(r rune) (n int, err error) {
+	n = utf8.RuneLen(r)
+	if r == '\n' {
+		tp.NewLine()
+		return
+	}
+	w, _ := termbox.Size()
+	maxX := w - tp.right - tp.left - 1
+	if tp.x >= maxX {
+		// TODO new line rune should be introduced by reshape method,
+		// only when needed.
+		termbox.SetCell(tp.left+maxX, tp.top+tp.y, '⏎', termbox.ColorWhite, termbox.ColorRed)
+		tp.NewLine()
+	}
+	termbox.SetCell(tp.left+tp.x, tp.top+tp.y, r, tp.fg, tp.bg)
+	tp.x++
+	return
 }
 
-func (tbp *TermboxPrinter) Printf(format string, a ...interface{}) {
-	tbp.Print(fmt.Sprintf(format, a...))
+// NewLine advances the printer to the beginning of the next line.
+func (tp *TermboxPrinter) NewLine() {
+	tp.SkipLines(1)
 }
 
-func (tbp *TermboxPrinter) Bold() {
-	tbp.fg |= termbox.AttrBold
+// SkipLines is equivalent to calling NewLine n times.
+func (tp *TermboxPrinter) SkipLines(n int) {
+	tp.x = 0
+	tp.y += n
 }
 
-func (tbp *TermboxPrinter) Underline() {
-	tbp.fg |= termbox.AttrUnderline
+// Bold makes the printer print bold characters.
+func (tp *TermboxPrinter) Bold() {
+	tp.fg |= termbox.AttrBold
 }
 
-func (tbp *TermboxPrinter) ResetColors() {
-	tbp.fg = termbox.ColorDefault
-	tbp.bg = termbox.ColorDefault
-}
-
-func (tbp *TermboxPrinter) SkipLines(n int) {
-	tbp.y += n
-	tbp.x = 0
+// Underline makes the printer print underlined characters.
+func (tp *TermboxPrinter) Underline() {
+	tp.fg |= termbox.AttrUnderline
 }

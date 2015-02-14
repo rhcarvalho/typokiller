@@ -8,7 +8,8 @@ import (
 	"log"
 )
 
-// ReadDir extracts comments of Go files.
+// ReadDir extracts documentation metadata from Go files in path.
+// This includes documentation comments and known identifiers.
 func ReadDir(path string) []*Package {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, path, nil, parser.ParseComments)

@@ -14,7 +14,7 @@ import (
 
 func main() {
 	usage := `Usage:
-  typokiller scan PATH ...
+  typokiller read PATH ...
   typokiller fix
 
 Find comments in Go source files and interactively fix typos.
@@ -24,7 +24,7 @@ Options:
   --version  Show version
 
 Commands:
-  scan       Outputs comments for the packages found
+  read       For each PATH, read the documentation of Go packages and outputs metadata to STDOUT
   fix        Reads spelling error information from STDIN and allows for interative patching`
 	arguments, _ := docopt.Parse(usage, nil, true, "typokiller 0.1", false)
 
@@ -58,9 +58,13 @@ Commands:
 		typokiller.IFix(spellingErrors)
 	}
 
-	// scan comments mode
+	Read(arguments["PATH"].([]string)...)
+}
+
+// Read reads the documentation of Go packages in paths and outputs metadata to STDOUT.
+func Read(paths ...string) {
 	enc := json.NewEncoder(os.Stdout)
-	for _, path := range arguments["PATH"].([]string) {
+	for _, path := range paths {
 		path, err := filepath.Abs(path)
 		if err != nil {
 			log.Fatalln(err)

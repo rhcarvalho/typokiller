@@ -77,5 +77,5 @@ func Fix() {
 	if err != nil && err != io.EOF {
 		log.Fatalln(err)
 	}
-	typokiller.IFix(misspellings)
+	typokiller.Fix(misspellings)
 }

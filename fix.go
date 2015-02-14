@@ -9,6 +9,61 @@ import (
 	termbox "github.com/nsf/termbox-go"
 )
 
+func Fix(misspellings []*Misspelling) {
+	if len(misspellings) == 0 {
+		return
+	}
+	err := termbox.Init()
+	if err != nil {
+		panic(err)
+	}
+	defer termbox.Close()
+	termbox.HideCursor()
+	termbox.SetOutputMode(termbox.Output256)
+
+	ui := NewFixUI(misspellings)
+	ui.Draw()
+
+mainloop:
+	for {
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			switch ev.Key {
+			case termbox.KeyEsc:
+				break mainloop
+			case termbox.KeyArrowUp, termbox.KeyArrowRight:
+				ui.Next()
+			case termbox.KeyArrowDown, termbox.KeyArrowLeft:
+				ui.Previous()
+			default:
+				switch ev.Ch {
+				case 'i':
+					ui.Ignore()
+				case 'I':
+					ui.IgnoreAll()
+				case 'r':
+					ui.Replace()
+				case 'R':
+					ui.ReplaceAll()
+				case 'e':
+					ui.Edit()
+				case 'E':
+					ui.EditAll()
+				case 'n':
+					ui.NextUndefined()
+				case 'a':
+					ui.Apply()
+				case 'q':
+					break mainloop
+				}
+			}
+		case termbox.EventError:
+			panic(ev.Err)
+		}
+		ui.Draw()
+	}
+}
+
 type FixUI struct {
 	Misspellings []*Misspelling
 	Index        int
@@ -329,60 +384,5 @@ func drawRect(x, y, w, h int, bg termbox.Attribute) {
 		termbox.SetCell(x+1, j, c, fg, bg)
 		termbox.SetCell(x+w-2, j, c, fg, bg)
 		termbox.SetCell(x+w-1, j, c, fg, bg)
-	}
-}
-
-func IFix(misspellings []*Misspelling) {
-	if len(misspellings) == 0 {
-		return
-	}
-	err := termbox.Init()
-	if err != nil {
-		panic(err)
-	}
-	defer termbox.Close()
-	termbox.HideCursor()
-	termbox.SetOutputMode(termbox.Output256)
-
-	ui := NewFixUI(misspellings)
-	ui.Draw()
-
-mainloop:
-	for {
-		switch ev := termbox.PollEvent(); ev.Type {
-		case termbox.EventKey:
-			switch ev.Key {
-			case termbox.KeyEsc:
-				break mainloop
-			case termbox.KeyArrowUp, termbox.KeyArrowRight:
-				ui.Next()
-			case termbox.KeyArrowDown, termbox.KeyArrowLeft:
-				ui.Previous()
-			default:
-				switch ev.Ch {
-				case 'i':
-					ui.Ignore()
-				case 'I':
-					ui.IgnoreAll()
-				case 'r':
-					ui.Replace()
-				case 'R':
-					ui.ReplaceAll()
-				case 'e':
-					ui.Edit()
-				case 'E':
-					ui.EditAll()
-				case 'n':
-					ui.NextUndefined()
-				case 'a':
-					ui.Apply()
-				case 'q':
-					break mainloop
-				}
-			}
-		case termbox.EventError:
-			panic(ev.Err)
-		}
-		ui.Draw()
 	}
 }

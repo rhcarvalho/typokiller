@@ -9,6 +9,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -78,7 +79,14 @@ func ReadPackage(name string, pkg *ast.Package, fset *token.FileSet) *Package {
 	for _, f := range pkg.Files {
 		// Collect comments
 		for _, c := range f.Comments {
-			p.Comments = append(p.Comments, &Comment{Text: c.Text(), Position: fset.Position(c.Pos())})
+			begin := fset.Position(c.Pos())
+			end := fset.Position(c.End())
+			b, err := ioutil.ReadFile(begin.Filename)
+			if err != nil {
+				panic(err)
+			}
+			text := string(b[begin.Offset:end.Offset])
+			p.Comments = append(p.Comments, &Comment{Text: text, Position: begin})
 		}
 
 		// Collect identifiers

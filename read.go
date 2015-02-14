@@ -35,8 +35,8 @@ func ReadPackage(name string, pkg *ast.Package, fset *token.FileSet) *Package {
 			if err != nil {
 				panic(err)
 			}
-			text := string(b[begin.Offset:end.Offset])
-			p.Comments = append(p.Comments, &Comment{Text: text, Position: begin})
+			content := string(b[begin.Offset:end.Offset])
+			p.Documentation = append(p.Documentation, &Text{Content: content, Position: begin})
 		}
 
 		// Collect identifiers

@@ -2,36 +2,39 @@ package typokiller
 
 import "go/token"
 
-// Package holds the comments of a Go package and a list of identifiers.
+// Package holds the documentation of a Go package and a list of identifiers.
 // The identifiers are useful to avoid false positives when spellchecking the
-// comments.
+// documentation.
 type Package struct {
-	Name        string `json:"PackageName"`
-	Identifiers []string
-	Comments    []*Comment
+	Name          string `json:"PackageName"`
+	Identifiers   []string
+	Documentation []*Text
 }
 
-// Comment holds the text of a comment and its detailed position.
-type Comment struct {
-	Text           string
-	Position       token.Position
-	SpellingErrors []*SpellingError
-	Package        *Package
+// Text holds some documentation text.
+type Text struct {
+	Content      string
+	Position     token.Position
+	Misspellings []*Misspelling
+	Package      *Package `json:"-"`
 }
 
-type SpellingError struct {
+// Misspelling holds information about a potential misspell.
+type Misspelling struct {
 	Word        string
 	Offset      int
 	Suggestions []string
-	Action      *Action
-	Comment     *Comment
+	Action      Action
+	Text        *Text `json:"-"`
 }
 
+// Action represents the user action towards a misspell.
 type Action struct {
 	Type        ActionType
 	Replacement string
 }
 
+// ActionType is one of Undefined, Ignore or Replace.
 type ActionType int
 
 const (

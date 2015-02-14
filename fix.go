@@ -12,22 +12,22 @@ import (
 )
 
 type TermboxUI struct {
-	SpellingErrors []*SpellingError
-	Index          int
-	Printer        *TermboxPrinter
+	Misspellings []*Misspelling
+	Index        int
+	Printer      *TermboxPrinter
 }
 
-func NewTermboxUI(spellingErrors []*SpellingError) *TermboxUI {
+func NewTermboxUI(misspellings []*Misspelling) *TermboxUI {
 	ui := &TermboxUI{
-		SpellingErrors: spellingErrors,
-		Printer:        &TermboxPrinter{left: 5, right: 5, top: 5, bottom: 5},
+		Misspellings: misspellings,
+		Printer:      &TermboxPrinter{left: 5, right: 5, top: 5, bottom: 5},
 	}
 	return ui
 }
 
 func (t *TermboxUI) Next() {
 	t.Index++
-	if !(t.Index < len(t.SpellingErrors)) {
+	if !(t.Index < len(t.Misspellings)) {
 		t.Index = 0
 	}
 }
@@ -36,11 +36,11 @@ func (t *TermboxUI) NextUndefined() {
 	start := t.Index
 	for {
 		t.Index++
-		if !(t.Index < len(t.SpellingErrors)) {
+		if !(t.Index < len(t.Misspellings)) {
 			t.Index = 0
 		}
-		se := t.SpellingErrors[t.Index]
-		if se.Action == nil || se.Action.Type == Undefined {
+		m := t.Misspellings[t.Index]
+		if m.Action.Type == Undefined {
 			break
 		}
 		if t.Index == start {
@@ -54,65 +54,65 @@ func (t *TermboxUI) NextUndefined() {
 func (t *TermboxUI) Previous() {
 	t.Index--
 	if t.Index < 0 {
-		t.Index = len(t.SpellingErrors) - 1
+		t.Index = len(t.Misspellings) - 1
 	}
 }
 
 func (t *TermboxUI) Ignore() {
-	se := t.SpellingErrors[t.Index]
-	se.Action = &Action{Type: Ignore}
+	m := t.Misspellings[t.Index]
+	m.Action = Action{Type: Ignore}
 	t.NextUndefined()
 }
 
 func (t *TermboxUI) Replace() {
-	se := t.SpellingErrors[t.Index]
-	se.Action = &Action{
+	m := t.Misspellings[t.Index]
+	m.Action = Action{
 		Type:        Replace,
-		Replacement: se.Suggestions[t.ReadIntegerInRange(1, len(se.Suggestions))-1]}
+		Replacement: m.Suggestions[t.ReadIntegerInRange(1, len(m.Suggestions))-1]}
 	t.NextUndefined()
 }
 
 func (t *TermboxUI) Edit() {
-	se := t.SpellingErrors[t.Index]
-	se.Action = &Action{
+	m := t.Misspellings[t.Index]
+	m.Action = Action{
 		Type:        Replace,
 		Replacement: t.ReadString()}
 	t.NextUndefined()
 }
 
 func (t *TermboxUI) IgnoreAll() {
-	se := t.SpellingErrors[t.Index]
-	word := se.Word
-	for i := t.Index; i < len(t.SpellingErrors); i++ {
-		se = t.SpellingErrors[i]
-		if se.Word == word && (se.Action == nil || se.Action.Type == Undefined) {
-			se.Action = &Action{Type: Ignore}
+	m := t.Misspellings[t.Index]
+	word := m.Word
+	for i := t.Index; i < len(t.Misspellings); i++ {
+		m = t.Misspellings[i]
+		if m.Word == word && m.Action.Type == Undefined {
+			m.Action = Action{Type: Ignore}
 		}
 	}
 	t.NextUndefined()
 }
 
 func (t *TermboxUI) ReplaceAll() {
-	se := t.SpellingErrors[t.Index]
-	word := se.Word
-	replacement := se.Suggestions[t.ReadIntegerInRange(1, len(se.Suggestions))-1]
-	for i := t.Index; i < len(t.SpellingErrors); i++ {
-		se = t.SpellingErrors[i]
-		if se.Word == word && (se.Action == nil || se.Action.Type == Undefined) {
-			se.Action = &Action{Type: Replace, Replacement: replacement}
+	m := t.Misspellings[t.Index]
+	word := m.Word
+	replacement := m.Suggestions[t.ReadIntegerInRange(1, len(m.Suggestions))-1]
+	for i := t.Index; i < len(t.Misspellings); i++ {
+		m = t.Misspellings[i]
+		if m.Word == word && m.Action.Type == Undefined {
+			m.Action = Action{Type: Replace, Replacement: replacement}
 		}
 	}
 	t.NextUndefined()
 }
 
 func (t *TermboxUI) EditAll() {
-	se := t.SpellingErrors[t.Index]
-	word := se.Word
+	m := t.Misspellings[t.Index]
+	word := m.Word
 	replacement := t.ReadString()
-	for i := t.Index; i < len(t.SpellingErrors); i++ {
-		se = t.SpellingErrors[i]
-		if se.Word == word && (se.Action == nil || se.Action.Type == Undefined) {
-			se.Action = &Action{Type: Replace, Replacement: replacement}
+	for i := t.Index; i < len(t.Misspellings); i++ {
+		m = t.Misspellings[i]
+		if m.Word == word && m.Action.Type == Undefined {
+			m.Action = Action{Type: Replace, Replacement: replacement}
 		}
 	}
 	t.NextUndefined()
@@ -130,11 +130,11 @@ func (t *TermboxUI) Apply() {
 
 	// Create a priority queue, put the items in it, and
 	// establish the priority queue (heap) invariants.
-	pq := make(PriorityQueue, len(t.SpellingErrors))
-	for i, se := range t.SpellingErrors {
+	pq := make(PriorityQueue, len(t.Misspellings))
+	for i, m := range t.Misspellings {
 		pq[i] = &Item{
-			value:    se,
-			priority: se.Comment.Position.Offset + se.Offset,
+			value:    m,
+			priority: m.Text.Position.Offset + m.Offset,
 			index:    i,
 		}
 	}
@@ -143,24 +143,24 @@ func (t *TermboxUI) Apply() {
 	// Take the items out; they arrive in decreasing priority order.
 	for max := len(pq); max > 0; max-- {
 		item := heap.Pop(&pq).(*Item)
-		se := item.value
-		if se.Action != nil && se.Action.Type == Replace {
+		m := item.value
+		if m.Action.Type == Replace {
 			t.Printer.fg = termbox.ColorYellow
 			t.Printer.Print(".")
-			pos := se.Comment.Position
+			pos := m.Text.Position
 
 			b, err := ioutil.ReadFile(pos.Filename)
 			if err != nil {
 				panic(err)
 			}
-			begin := pos.Offset + se.Offset
-			end := begin + len(se.Word)
+			begin := pos.Offset + m.Offset
+			end := begin + len(m.Word)
 			found := string(b[begin:end])
-			if found == se.Word {
-				replaced := replaceSlice(b, begin, end, []byte(se.Action.Replacement)...)
+			if found == m.Word {
+				replaced := replaceSlice(b, begin, end, []byte(m.Action.Replacement)...)
 				ioutil.WriteFile(pos.Filename, replaced, 0644)
 			} else {
-				t.Printer.Printf("%s != %s", found, se.Word)
+				t.Printer.Printf("%s != %s", found, m.Word)
 			}
 			termbox.Flush()
 		}
@@ -185,9 +185,9 @@ func replaceSlice(slice []byte, begin, end int, repl ...byte) []byte {
 
 // An Item is something we manage in a priority queue.
 type Item struct {
-	value    *SpellingError // The value of the item; arbitrary.
-	priority int            // The priority of the item in the queue.
-	index    int            // The index of the item in the heap.
+	value    *Misspelling // The value of the item; arbitrary.
+	priority int          // The priority of the item in the queue.
+	index    int          // The index of the item in the heap.
 }
 
 // A PriorityQueue implements heap.Interface and holds Items.
@@ -310,32 +310,32 @@ func (t *TermboxUI) Draw() {
 	tp.ResetColors()
 	tp.Print(" of ")
 	tp.Bold()
-	tp.Printf("%d", len(t.SpellingErrors))
+	tp.Printf("%d", len(t.Misspellings))
 	tp.ResetColors()
 
-	se := t.SpellingErrors[t.Index]
-	comment := se.Comment
+	m := t.Misspellings[t.Index]
+	text := m.Text
 
 	tp.SkipLines(2)
 	tp.Underline()
-	tp.Printf("%s:%d:%d\n", comment.Position.Filename, comment.Position.Line, comment.Position.Column)
+	tp.Printf("%s:%d:%d\n", text.Position.Filename, text.Position.Line, text.Position.Column)
 
 	tp.SkipLines(1)
 	tmp := tp.y
 	tp.fg = 0xf0
-	tp.Println(comment.Text)
+	tp.Println(text.Content)
 	tmp, tp.y = tp.y, tmp
 
-	tp.x += se.Offset - strings.LastIndex(comment.Text[:se.Offset], "\n") - 1
-	tp.y += strings.Count(comment.Text[:se.Offset], "\n")
+	tp.x += m.Offset - strings.LastIndex(text.Content[:m.Offset], "\n") - 1
+	tp.y += strings.Count(text.Content[:m.Offset], "\n")
 	tp.fg = termbox.ColorRed | termbox.AttrBold
-	tp.Print(se.Word)
+	tp.Print(m.Word)
 	tp.ResetColors()
 	tp.y = tmp
 
 	tp.SkipLines(1)
 	tp.Print("Suggestions: ")
-	for i, suggestion := range se.Suggestions {
+	for i, suggestion := range m.Suggestions {
 		if i > 0 {
 			tp.Print(", ")
 		}
@@ -381,14 +381,14 @@ func (t *TermboxUI) Draw() {
 	tp.ResetColors()
 	tp.Println("uit")
 
-	if se.Action != nil {
+	if m.Action.Type != Undefined {
 		tp.SkipLines(1)
 		tp.fg = termbox.ColorBlue
-		switch se.Action.Type {
+		switch m.Action.Type {
 		case Ignore:
 			tp.Println("ignored")
 		case Replace:
-			tp.Printf("replace with '%s'\n", se.Action.Replacement)
+			tp.Printf("replace with '%s'\n", m.Action.Replacement)
 		}
 		tp.ResetColors()
 	}
@@ -466,8 +466,8 @@ func drawRect(x, y, w, h int, bg termbox.Attribute) {
 	}
 }
 
-func IFix(spellingErrors []*SpellingError) {
-	if len(spellingErrors) == 0 {
+func IFix(misspellings []*Misspelling) {
+	if len(misspellings) == 0 {
 		return
 	}
 	err := termbox.Init()
@@ -478,7 +478,7 @@ func IFix(spellingErrors []*SpellingError) {
 	termbox.HideCursor()
 	termbox.SetOutputMode(termbox.Output256)
 
-	ui := NewTermboxUI(spellingErrors)
+	ui := NewTermboxUI(misspellings)
 	ui.Draw()
 
 mainloop:

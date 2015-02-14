@@ -31,7 +31,7 @@ Commands:
 	// fix typos mode
 	if arguments["fix"].(bool) {
 		reader := bufio.NewReaderSize(os.Stdin, 64*1024*1024) // 64 MB
-		var spellingErrors []*typokiller.SpellingError
+		var misspellings []*typokiller.Misspelling
 		var err error
 		for {
 			line, err := reader.ReadBytes('\n')
@@ -44,18 +44,18 @@ Commands:
 				log.Fatalf("error: %v\nline: %s\n", err, line)
 			}
 
-			for _, c := range pkg.Comments {
-				c.Package = pkg
-				for _, s := range c.SpellingErrors {
-					s.Comment = c
-					spellingErrors = append(spellingErrors, s)
+			for _, text := range pkg.Documentation {
+				text.Package = pkg
+				for _, misspelling := range text.Misspellings {
+					misspelling.Text = text
+					misspellings = append(misspellings, misspelling)
 				}
 			}
 		}
 		if err != nil && err != io.EOF {
 			log.Fatalln(err)
 		}
-		typokiller.IFix(spellingErrors)
+		typokiller.IFix(misspellings)
 	}
 
 	Read(arguments["PATH"].([]string)...)

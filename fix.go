@@ -11,14 +11,14 @@ import (
 	termbox "github.com/nsf/termbox-go"
 )
 
-type TermboxUI struct {
+type FixUI struct {
 	Misspellings []*Misspelling
 	Index        int
 	Printer      *TermboxPrinter
 }
 
-func NewTermboxUI(misspellings []*Misspelling) *TermboxUI {
-	ui := &TermboxUI{
+func NewFixUI(misspellings []*Misspelling) *FixUI {
+	ui := &FixUI{
 		Misspellings: misspellings,
 		Printer:      NewTermboxPrinter(5, 5, 5, 5),
 	}
@@ -26,18 +26,18 @@ func NewTermboxUI(misspellings []*Misspelling) *TermboxUI {
 }
 
 // Write implements the io.Writer interface.
-func (t *TermboxUI) Write(p []byte) (int, error) {
+func (t *FixUI) Write(p []byte) (int, error) {
 	return t.Printer.Write(p)
 }
 
-func (t *TermboxUI) Next() {
+func (t *FixUI) Next() {
 	t.Index++
 	if !(t.Index < len(t.Misspellings)) {
 		t.Index = 0
 	}
 }
 
-func (t *TermboxUI) NextUndefined() {
+func (t *FixUI) NextUndefined() {
 	start := t.Index
 	for {
 		t.Index++
@@ -56,20 +56,20 @@ func (t *TermboxUI) NextUndefined() {
 	}
 }
 
-func (t *TermboxUI) Previous() {
+func (t *FixUI) Previous() {
 	t.Index--
 	if t.Index < 0 {
 		t.Index = len(t.Misspellings) - 1
 	}
 }
 
-func (t *TermboxUI) Ignore() {
+func (t *FixUI) Ignore() {
 	m := t.Misspellings[t.Index]
 	m.Action = Action{Type: Ignore}
 	t.NextUndefined()
 }
 
-func (t *TermboxUI) Replace() {
+func (t *FixUI) Replace() {
 	m := t.Misspellings[t.Index]
 	m.Action = Action{
 		Type:        Replace,
@@ -77,7 +77,7 @@ func (t *TermboxUI) Replace() {
 	t.NextUndefined()
 }
 
-func (t *TermboxUI) Edit() {
+func (t *FixUI) Edit() {
 	m := t.Misspellings[t.Index]
 	m.Action = Action{
 		Type:        Replace,
@@ -85,7 +85,7 @@ func (t *TermboxUI) Edit() {
 	t.NextUndefined()
 }
 
-func (t *TermboxUI) IgnoreAll() {
+func (t *FixUI) IgnoreAll() {
 	m := t.Misspellings[t.Index]
 	word := m.Word
 	for i := t.Index; i < len(t.Misspellings); i++ {
@@ -97,7 +97,7 @@ func (t *TermboxUI) IgnoreAll() {
 	t.NextUndefined()
 }
 
-func (t *TermboxUI) ReplaceAll() {
+func (t *FixUI) ReplaceAll() {
 	m := t.Misspellings[t.Index]
 	word := m.Word
 	replacement := m.Suggestions[t.ReadIntegerInRange(1, len(m.Suggestions))-1]
@@ -110,7 +110,7 @@ func (t *TermboxUI) ReplaceAll() {
 	t.NextUndefined()
 }
 
-func (t *TermboxUI) EditAll() {
+func (t *FixUI) EditAll() {
 	m := t.Misspellings[t.Index]
 	word := m.Word
 	replacement := t.ReadString()
@@ -123,7 +123,7 @@ func (t *TermboxUI) EditAll() {
 	t.NextUndefined()
 }
 
-func (t *TermboxUI) Apply() {
+func (t *FixUI) Apply() {
 	defer termbox.PollEvent()
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	w, h := termbox.Size()
@@ -226,7 +226,7 @@ func (pq *PriorityQueue) Pop() interface{} {
 	return item
 }
 
-func (t *TermboxUI) ReadIntegerInRange(a, b int) int {
+func (t *FixUI) ReadIntegerInRange(a, b int) int {
 start:
 	t.Printer.fg |= termbox.AttrBold
 	fmt.Fprintf(t, "\nenter number in range [%d, %d]: ", a, b)
@@ -261,7 +261,7 @@ mainloop:
 	return i
 }
 
-func (t *TermboxUI) ReadString() string {
+func (t *FixUI) ReadString() string {
 	t.Printer.fg |= termbox.AttrBold
 	fmt.Fprint(t, "\nreplace with: ")
 	t.Printer.ResetColors()
@@ -298,7 +298,7 @@ mainloop:
 	return string(v)
 }
 
-func (t *TermboxUI) Draw() {
+func (t *FixUI) Draw() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	defer termbox.Flush()
 
@@ -426,7 +426,7 @@ func IFix(misspellings []*Misspelling) {
 	termbox.HideCursor()
 	termbox.SetOutputMode(termbox.Output256)
 
-	ui := NewTermboxUI(misspellings)
+	ui := NewFixUI(misspellings)
 	ui.Draw()
 
 mainloop:

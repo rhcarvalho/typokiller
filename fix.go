@@ -179,8 +179,7 @@ func (t *FixUI) EditAll() {
 func (t *FixUI) Apply() {
 	defer termbox.PollEvent() // stay visible until user presses a key
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-	w, h := termbox.Size()
-	drawRect(2, 2, w-4, h-4, 0xf7)
+	t.DrawBorders()
 	t.Printer.Reset()
 	t.Printer.fg = termbox.ColorGreen
 	fmt.Fprint(t, "applying changes")
@@ -275,9 +274,7 @@ func (t *FixUI) Draw() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	defer termbox.Flush()
 
-	w, h := termbox.Size()
-
-	drawRect(2, 2, w-4, h-4, 0xf7)
+	t.DrawBorders()
 
 	tp := t.Printer
 	tp.Reset()
@@ -372,17 +369,23 @@ func (t *FixUI) Draw() {
 	}
 }
 
-func drawRect(x, y, w, h int, bg termbox.Attribute) {
+// DrawBorders draws a rectangular border around the screen.
+func (t *FixUI) DrawBorders() {
+	x, y := 1, 1
+	w, h := termbox.Size()
 	c := ' '
 	fg := termbox.ColorDefault
-	for i := x; i < x+w; i++ {
+	bg := termbox.Attribute(0xf7)
+	// draw top and bottom borders
+	for i := x; i < w-x; i++ {
 		termbox.SetCell(i, y, c, fg, bg)
-		termbox.SetCell(i, y+h-1, c, fg, bg)
+		termbox.SetCell(i, h-y, c, fg, bg)
 	}
-	for j := y; j < y+h; j++ {
+	// draw left and right borders
+	for j := y; j < h-y; j++ {
 		termbox.SetCell(x, j, c, fg, bg)
 		termbox.SetCell(x+1, j, c, fg, bg)
-		termbox.SetCell(x+w-2, j, c, fg, bg)
-		termbox.SetCell(x+w-1, j, c, fg, bg)
+		termbox.SetCell(w-x-2, j, c, fg, bg)
+		termbox.SetCell(w-x-1, j, c, fg, bg)
 	}
 }

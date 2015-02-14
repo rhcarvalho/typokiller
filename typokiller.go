@@ -1,23 +1,17 @@
-package main
+package typokiller
 
 import (
-	"bufio"
 	"container/heap"
-	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io"
 	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode"
 
-	docopt "github.com/docopt/docopt-go"
 	termbox "github.com/nsf/termbox-go"
 )
 
@@ -607,64 +601,5 @@ func drawRect(x, y, w, h int, bg termbox.Attribute) {
 		termbox.SetCell(x+1, j, c, fg, bg)
 		termbox.SetCell(x+w-2, j, c, fg, bg)
 		termbox.SetCell(x+w-1, j, c, fg, bg)
-	}
-}
-
-func main() {
-	usage := `Usage:
-  typokiller scan PATH ...
-  typokiller fix
-
-Find comments in Go source files and interactively fix typos.
-
-Options:
-  -h --help  Show this usage help
-  --version  Show version
-
-Commands:
-  scan       Outputs comments for the packages found
-  fix        Reads spelling error information from STDIN and allows for interative patching`
-	arguments, _ := docopt.Parse(usage, nil, true, "typokiller 0.1", false)
-
-	// fix typos mode
-	if arguments["fix"].(bool) {
-		reader := bufio.NewReaderSize(os.Stdin, 64*1024*1024) // 64 MB
-		var spellingErrors []*SpellingError
-		var err error
-		for {
-			line, err := reader.ReadBytes('\n')
-			if err != nil {
-				break
-			}
-
-			var pkg *Package
-			if err = json.Unmarshal(line, &pkg); err != nil {
-				log.Fatalf("error: %v\nline: %s\n", err, line)
-			}
-
-			for _, c := range pkg.Comments {
-				c.Package = pkg
-				for _, s := range c.SpellingErrors {
-					s.Comment = c
-					spellingErrors = append(spellingErrors, s)
-				}
-			}
-		}
-		if err != nil && err != io.EOF {
-			log.Fatalln(err)
-		}
-		IFix(spellingErrors)
-	}
-
-	// scan comments mode
-	enc := json.NewEncoder(os.Stdout)
-	for _, path := range arguments["PATH"].([]string) {
-		path, err := filepath.Abs(path)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		for _, pkg := range ReadDir(path) {
-			enc.Encode(pkg)
-		}
 	}
 }

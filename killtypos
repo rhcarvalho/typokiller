@@ -1,2 +1,2 @@
 #!/bin/bash
-go build typokiller.go && ./typokiller scan "$@" | ./spellcheck.py | ./typokiller fix
+go install ./... && typokiller scan "$@" | ./spellcheck.py | typokiller fix

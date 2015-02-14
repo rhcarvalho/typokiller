@@ -225,7 +225,7 @@ func (t *TermboxUI) Apply() {
 	heap.Init(&pq)
 
 	// Take the items out; they arrive in decreasing priority order.
-	for pq.Len() > 0 {
+	for max := len(pq); max > 0; max-- {
 		item := heap.Pop(&pq).(*Item)
 		se := item.value
 		if se.Action != nil && se.Action.Type == Replace {

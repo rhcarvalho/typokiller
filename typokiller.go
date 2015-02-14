@@ -237,15 +237,39 @@ func (t *TermboxUI) Apply() {
 			t.Printer.fg = termbox.ColorYellow
 			t.Printer.Print(".")
 			pos := se.Comment.Position
-			t.Printer.Printf("%s:%d:%d '%s' -> '%s'\n",
-				pos.Filename, pos.Line, pos.Column,
-				se.Word, se.Action.Replacement)
+
+			b, err := ioutil.ReadFile(pos.Filename)
+			if err != nil {
+				panic(err)
+			}
+			begin := pos.Offset + se.Offset
+			end := begin + len(se.Word)
+			found := string(b[begin:end])
+			if found == se.Word {
+				replaced := replaceSlice(b, begin, end, []byte(se.Action.Replacement)...)
+				ioutil.WriteFile(pos.Filename, replaced, 0644)
+			} else {
+				t.Printer.Printf("%s != %s", found, se.Word)
+			}
 			termbox.Flush()
 		}
 	}
 	t.Printer.Print("done")
 	termbox.Flush()
 }
+
+func replaceSlice(slice []byte, begin, end int, repl ...byte) []byte {
+	total := len(slice) - (end - begin) + len(repl)
+	if total > cap(slice) {
+		newSlice := make([]byte, total)
+		copy(newSlice, slice)
+		slice = newSlice
+	}
+	originalLen := len(slice)
+	slice = slice[:total]
+	copy(slice[begin+len(repl):originalLen], slice[end:originalLen])
+	copy(slice[begin:begin+len(repl)], repl)
+	return slice
 }
 
 // An Item is something we manage in a priority queue.

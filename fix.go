@@ -44,7 +44,7 @@ func NewFixUI() *FixUI {
 }
 
 // Mainloop draws the current state in the terminal and waits for user input.
-func (t *FixUI) Mainloop(errs <-chan error) error {
+func (ui *FixUI) Mainloop(errs <-chan error) error {
 	// initialize termbox
 	err := termbox.Init()
 	if err != nil {
@@ -53,7 +53,7 @@ func (t *FixUI) Mainloop(errs <-chan error) error {
 	defer termbox.Close()
 	termbox.HideCursor()
 	termbox.SetOutputMode(termbox.Output256)
-	t.Draw()
+	ui.Draw()
 
 	events := make(chan termbox.Event)
 	go func() {
@@ -76,27 +76,27 @@ func (t *FixUI) Mainloop(errs <-chan error) error {
 				case termbox.KeyEsc:
 					return nil
 				case termbox.KeyArrowUp, termbox.KeyArrowRight:
-					t.Next()
+					ui.Next()
 				case termbox.KeyArrowDown, termbox.KeyArrowLeft:
-					t.Previous()
+					ui.Previous()
 				default:
 					switch ev.Ch {
 					case 'i':
-						t.Ignore()
+						ui.Ignore()
 					case 'I':
-						t.IgnoreAll()
+						ui.IgnoreAll()
 					case 'r':
-						t.Replace()
+						ui.Replace()
 					case 'R':
-						t.ReplaceAll()
+						ui.ReplaceAll()
 					case 'e':
-						t.Edit()
+						ui.Edit()
 					case 'E':
-						t.EditAll()
+						ui.EditAll()
 					case 'n':
-						t.NextUndefined()
+						ui.NextUndefined()
 					case 'a':
-						t.Apply()
+						ui.Apply()
 					case 'q':
 						return nil
 					}
@@ -104,150 +104,150 @@ func (t *FixUI) Mainloop(errs <-chan error) error {
 			case termbox.EventError:
 				return ev.Err
 			}
-			t.Draw()
+			ui.Draw()
 		}
 	}
 }
 
 // Write implements the io.Writer interface.
-func (t *FixUI) Write(p []byte) (int, error) {
-	return t.Printer.Write(p)
+func (ui *FixUI) Write(p []byte) (int, error) {
+	return ui.Printer.Write(p)
 }
 
 // Next advances to the next misspell.
-func (t *FixUI) Next() {
-	t.Index++
-	if !(t.Index < len(t.Misspellings)) {
-		t.Index = 0
+func (ui *FixUI) Next() {
+	ui.Index++
+	if !(ui.Index < len(ui.Misspellings)) {
+		ui.Index = 0
 	}
 }
 
 // NextUndefined advances to the next misspell that has an Undefined action.
-func (t *FixUI) NextUndefined() {
-	start := t.Index
+func (ui *FixUI) NextUndefined() {
+	start := ui.Index
 	for {
-		t.Index++
-		if !(t.Index < len(t.Misspellings)) {
-			t.Index = 0
+		ui.Index++
+		if !(ui.Index < len(ui.Misspellings)) {
+			ui.Index = 0
 		}
-		m := t.Misspellings[t.Index]
+		m := ui.Misspellings[ui.Index]
 		if m.Action.Type == Undefined {
 			break
 		}
-		if t.Index == start {
-			t.Printer.fg = termbox.ColorGreen
-			fmt.Fprintln(t, "all done")
+		if ui.Index == start {
+			ui.Printer.fg = termbox.ColorGreen
+			fmt.Fprintln(ui, "all done")
 			break
 		}
 	}
 }
 
 // Previous goes back to the previous misspell.
-func (t *FixUI) Previous() {
-	t.Index--
-	if t.Index < 0 {
-		t.Index = len(t.Misspellings) - 1
+func (ui *FixUI) Previous() {
+	ui.Index--
+	if ui.Index < 0 {
+		ui.Index = len(ui.Misspellings) - 1
 	}
 }
 
 // Ignore ignores the current misspell.
-func (t *FixUI) Ignore() {
-	m := t.Misspellings[t.Index]
+func (ui *FixUI) Ignore() {
+	m := ui.Misspellings[ui.Index]
 	m.Action = Action{Type: Ignore}
-	t.NextUndefined()
+	ui.NextUndefined()
 }
 
 // Replace replaces the current misspell with a suggestion.
-func (t *FixUI) Replace() {
-	m := t.Misspellings[t.Index]
+func (ui *FixUI) Replace() {
+	m := ui.Misspellings[ui.Index]
 	m.Action = Action{
 		Type:        Replace,
-		Replacement: m.Suggestions[t.ReadIntegerInRange(1, len(m.Suggestions))-1]}
-	t.NextUndefined()
+		Replacement: m.Suggestions[ui.ReadIntegerInRange(1, len(m.Suggestions))-1]}
+	ui.NextUndefined()
 }
 
 // Edit replaces the current misspell with custom text.
-func (t *FixUI) Edit() {
-	m := t.Misspellings[t.Index]
+func (ui *FixUI) Edit() {
+	m := ui.Misspellings[ui.Index]
 	m.Action = Action{
 		Type:        Replace,
-		Replacement: t.ReadString()}
-	t.NextUndefined()
+		Replacement: ui.ReadString()}
+	ui.NextUndefined()
 }
 
 // IgnoreAll ignores all misspells with Undefined action that matches the
 // current word.
-func (t *FixUI) IgnoreAll() {
-	m := t.Misspellings[t.Index]
+func (ui *FixUI) IgnoreAll() {
+	m := ui.Misspellings[ui.Index]
 	word := m.Word
-	for i := t.Index; i < len(t.Misspellings); i++ {
-		m = t.Misspellings[i]
+	for i := ui.Index; i < len(ui.Misspellings); i++ {
+		m = ui.Misspellings[i]
 		if m.Word == word && m.Action.Type == Undefined {
 			m.Action = Action{Type: Ignore}
 		}
 	}
-	t.NextUndefined()
+	ui.NextUndefined()
 }
 
 // ReplaceAll replaces all occurrences of the current word with a suggestion.
-func (t *FixUI) ReplaceAll() {
-	m := t.Misspellings[t.Index]
+func (ui *FixUI) ReplaceAll() {
+	m := ui.Misspellings[ui.Index]
 	word := m.Word
-	replacement := m.Suggestions[t.ReadIntegerInRange(1, len(m.Suggestions))-1]
-	for i := t.Index; i < len(t.Misspellings); i++ {
-		m = t.Misspellings[i]
+	replacement := m.Suggestions[ui.ReadIntegerInRange(1, len(m.Suggestions))-1]
+	for i := ui.Index; i < len(ui.Misspellings); i++ {
+		m = ui.Misspellings[i]
 		if m.Word == word && m.Action.Type == Undefined {
 			m.Action = Action{Type: Replace, Replacement: replacement}
 		}
 	}
-	t.NextUndefined()
+	ui.NextUndefined()
 }
 
 // EditAll replaces all occurrences of the current word with custom text.
-func (t *FixUI) EditAll() {
-	m := t.Misspellings[t.Index]
+func (ui *FixUI) EditAll() {
+	m := ui.Misspellings[ui.Index]
 	word := m.Word
-	replacement := t.ReadString()
-	for i := t.Index; i < len(t.Misspellings); i++ {
-		m = t.Misspellings[i]
+	replacement := ui.ReadString()
+	for i := ui.Index; i < len(ui.Misspellings); i++ {
+		m = ui.Misspellings[i]
 		if m.Word == word && m.Action.Type == Undefined {
 			m.Action = Action{Type: Replace, Replacement: replacement}
 		}
 	}
-	t.NextUndefined()
+	ui.NextUndefined()
 }
 
 // Apply applies marked changes to disk.
-func (t *FixUI) Apply() {
+func (ui *FixUI) Apply() {
 	defer termbox.PollEvent() // stay visible until user presses a key
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-	t.DrawBorders()
-	t.Printer.Reset()
-	t.Printer.fg = termbox.ColorGreen
-	fmt.Fprintln(t, "applying changes")
+	ui.DrawBorders()
+	ui.Printer.Reset()
+	ui.Printer.fg = termbox.ColorGreen
+	fmt.Fprintln(ui, "applying changes")
 	termbox.Flush()
 
 	status := make(chan string)
-	go Apply(t.Misspellings, status)
+	go Apply(ui.Misspellings, status)
 
-	t.Printer.fg = termbox.ColorYellow
+	ui.Printer.fg = termbox.ColorYellow
 	for s := range status {
-		fmt.Fprint(t, s)
+		fmt.Fprint(ui, s)
 		termbox.Flush()
 	}
-	fmt.Fprint(t, "\ndone")
-	t.Printer.ResetColors()
+	fmt.Fprint(ui, "\ndone")
+	ui.Printer.ResetColors()
 	termbox.Flush()
 }
 
 // ReadIntegerInRange interactively reads an integer within the range [a, b].
-func (t *FixUI) ReadIntegerInRange(a, b int) int {
+func (ui *FixUI) ReadIntegerInRange(a, b int) int {
 start:
-	t.Printer.fg |= termbox.AttrBold
-	fmt.Fprintf(t, "\nenter number in range [%d, %d]: ", a, b)
-	t.Printer.ResetColors()
+	ui.Printer.fg |= termbox.AttrBold
+	fmt.Fprintf(ui, "\nenter number in range [%d, %d]: ", a, b)
+	ui.Printer.ResetColors()
 	termbox.Flush()
-	t.Printer.fg = termbox.ColorMagenta
+	ui.Printer.fg = termbox.ColorMagenta
 	var v []rune
 mainloop:
 	for {
@@ -258,17 +258,17 @@ mainloop:
 			}
 			if ev.Ch >= '0' && ev.Ch <= '9' {
 				v = append(v, ev.Ch)
-				fmt.Fprint(t, string(ev.Ch))
+				fmt.Fprint(ui, string(ev.Ch))
 				termbox.Flush()
 			}
 		case termbox.EventError:
 			panic(ev.Err)
 		}
 	}
-	t.Printer.ResetColors()
+	ui.Printer.ResetColors()
 	i, err := strconv.Atoi(string(v))
 	if err != nil || !(a <= i && i <= b) {
-		fmt.Fprintln(t, " → invalid number, try again")
+		fmt.Fprintln(ui, " → invalid number, try again")
 		termbox.Flush()
 		v = nil
 		goto start
@@ -277,12 +277,12 @@ mainloop:
 }
 
 // ReadString interactively reads an arbitrary string.
-func (t *FixUI) ReadString() string {
-	t.Printer.fg |= termbox.AttrBold
-	fmt.Fprint(t, "\nreplace with: ")
-	t.Printer.ResetColors()
+func (ui *FixUI) ReadString() string {
+	ui.Printer.fg |= termbox.AttrBold
+	fmt.Fprint(ui, "\nreplace with: ")
+	ui.Printer.ResetColors()
 	termbox.Flush()
-	t.Printer.fg = termbox.ColorMagenta
+	ui.Printer.fg = termbox.ColorMagenta
 	var v []rune
 mainloop:
 	for {
@@ -294,15 +294,15 @@ mainloop:
 			case termbox.KeyBackspace, termbox.KeyBackspace2:
 				if len(v) > 0 {
 					v = v[:len(v)-1]
-					t.Printer.x--
-					fmt.Fprint(t, " ")
-					t.Printer.x--
+					ui.Printer.x--
+					fmt.Fprint(ui, " ")
+					ui.Printer.x--
 					termbox.Flush()
 				}
 			default:
 				if unicode.IsPrint(ev.Ch) || ev.Key == termbox.KeySpace {
 					v = append(v, ev.Ch)
-					fmt.Fprint(t, string(ev.Ch))
+					fmt.Fprint(ui, string(ev.Ch))
 					termbox.Flush()
 				}
 			}
@@ -310,124 +310,124 @@ mainloop:
 			panic(ev.Err)
 		}
 	}
-	t.Printer.ResetColors()
+	ui.Printer.ResetColors()
 	return string(v)
 }
 
 // Draw draws the current state of the UI.
-func (t *FixUI) Draw() {
+func (ui *FixUI) Draw() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	defer termbox.Flush()
 
-	t.DrawBorders()
+	ui.DrawBorders()
 
-	tp := t.Printer
+	tp := ui.Printer
 	tp.Reset()
 
-	if len(t.Misspellings) == 0 {
-		if t.DoneLoadingInput {
-			fmt.Fprint(t, "No spelling errors!")
+	if len(ui.Misspellings) == 0 {
+		if ui.DoneLoadingInput {
+			fmt.Fprint(ui, "No spelling errors!")
 		} else {
-			fmt.Fprint(t, "Loading data...")
+			fmt.Fprint(ui, "Loading data...")
 		}
 		return
 	}
 
-	fmt.Fprint(t, "Spelling error ")
+	fmt.Fprint(ui, "Spelling error ")
 	tp.Bold()
-	fmt.Fprintf(t, "%d", t.Index+1)
+	fmt.Fprintf(ui, "%d", ui.Index+1)
 	tp.ResetColors()
-	fmt.Fprint(t, " of ")
+	fmt.Fprint(ui, " of ")
 	tp.Bold()
-	fmt.Fprintf(t, "%d", len(t.Misspellings))
-	if !t.DoneLoadingInput {
-		fmt.Fprint(t, "+")
+	fmt.Fprintf(ui, "%d", len(ui.Misspellings))
+	if !ui.DoneLoadingInput {
+		fmt.Fprint(ui, "+")
 	}
 	tp.ResetColors()
 
-	m := t.Misspellings[t.Index]
+	m := ui.Misspellings[ui.Index]
 	text := m.Text
 
 	tp.SkipLines(2)
 	tp.Underline()
-	fmt.Fprintf(t, "%s:%d:%d\n", text.Position.Filename, text.Position.Line, text.Position.Column)
+	fmt.Fprintf(ui, "%s:%d:%d\n", text.Position.Filename, text.Position.Line, text.Position.Column)
 
 	tp.SkipLines(1)
 	tmp := tp.y
 	tp.fg = 0xf0
-	fmt.Fprintln(t, text.Content)
+	fmt.Fprintln(ui, text.Content)
 	tmp, tp.y = tp.y, tmp
 
 	tp.x += m.Offset - strings.LastIndex(text.Content[:m.Offset], "\n") - 1
 	tp.y += strings.Count(text.Content[:m.Offset], "\n")
 	tp.fg = termbox.ColorRed | termbox.AttrBold
-	fmt.Fprint(t, m.Word)
+	fmt.Fprint(ui, m.Word)
 	tp.ResetColors()
 	tp.y = tmp
 
 	tp.SkipLines(1)
-	fmt.Fprint(t, "Suggestions: ")
+	fmt.Fprint(ui, "Suggestions: ")
 	for i, suggestion := range m.Suggestions {
 		if i > 0 {
-			fmt.Fprint(t, ", ")
+			fmt.Fprint(ui, ", ")
 		}
-		fmt.Fprintf(t, "[%d] %s", i+1, suggestion)
+		fmt.Fprintf(ui, "[%d] %s", i+1, suggestion)
 	}
 	tp.SkipLines(2)
 
-	fmt.Fprint(t, "Actions: ")
+	fmt.Fprint(ui, "Actions: ")
 	tp.fg |= termbox.AttrUnderline
-	fmt.Fprint(t, "r")
+	fmt.Fprint(ui, "r")
 	tp.ResetColors()
-	fmt.Fprint(t, "eplace, ")
+	fmt.Fprint(ui, "eplace, ")
 	tp.fg |= termbox.AttrUnderline
-	fmt.Fprint(t, "R")
+	fmt.Fprint(ui, "R")
 	tp.ResetColors()
-	fmt.Fprint(t, "eplace all, ")
+	fmt.Fprint(ui, "eplace all, ")
 	tp.fg |= termbox.AttrUnderline
-	fmt.Fprint(t, "i")
+	fmt.Fprint(ui, "i")
 	tp.ResetColors()
-	fmt.Fprint(t, "gnore, ")
+	fmt.Fprint(ui, "gnore, ")
 	tp.fg |= termbox.AttrUnderline
-	fmt.Fprint(t, "I")
+	fmt.Fprint(ui, "I")
 	tp.ResetColors()
-	fmt.Fprint(t, "gnore all, ")
+	fmt.Fprint(ui, "gnore all, ")
 	tp.fg |= termbox.AttrUnderline
-	fmt.Fprint(t, "e")
+	fmt.Fprint(ui, "e")
 	tp.ResetColors()
-	fmt.Fprint(t, "dit, ")
+	fmt.Fprint(ui, "dit, ")
 	tp.fg |= termbox.AttrUnderline
-	fmt.Fprint(t, "E")
+	fmt.Fprint(ui, "E")
 	tp.ResetColors()
-	fmt.Fprint(t, "dit all, ")
+	fmt.Fprint(ui, "dit all, ")
 	tp.fg |= termbox.AttrUnderline
-	fmt.Fprint(t, "n")
+	fmt.Fprint(ui, "n")
 	tp.ResetColors()
-	fmt.Fprint(t, "ext undefined, ")
+	fmt.Fprint(ui, "ext undefined, ")
 	tp.fg |= termbox.AttrUnderline
-	fmt.Fprint(t, "a")
+	fmt.Fprint(ui, "a")
 	tp.ResetColors()
-	fmt.Fprint(t, "pply, ")
+	fmt.Fprint(ui, "pply, ")
 	tp.fg |= termbox.AttrUnderline
-	fmt.Fprint(t, "q")
+	fmt.Fprint(ui, "q")
 	tp.ResetColors()
-	fmt.Fprintln(t, "uit")
+	fmt.Fprintln(ui, "uit")
 
 	if m.Action.Type != Undefined {
 		tp.SkipLines(1)
 		tp.fg = termbox.ColorBlue
 		switch m.Action.Type {
 		case Ignore:
-			fmt.Fprintln(t, "ignored")
+			fmt.Fprintln(ui, "ignored")
 		case Replace:
-			fmt.Fprintf(t, "replace with '%s'\n", m.Action.Replacement)
+			fmt.Fprintf(ui, "replace with '%s'\n", m.Action.Replacement)
 		}
 		tp.ResetColors()
 	}
 }
 
 // DrawBorders draws a rectangular border around the screen.
-func (t *FixUI) DrawBorders() {
+func (ui *FixUI) DrawBorders() {
 	x, y := 1, 1
 	w, h := termbox.Size()
 	c := ' '

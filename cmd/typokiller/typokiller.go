@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	docopt "github.com/docopt/docopt-go"
 	"github.com/rhcarvalho/typokiller"
@@ -37,7 +38,11 @@ Commands:
 		err = Read(arguments["PATH"].([]string)...)
 	}
 	if err != nil {
-		log.Fatalln("error:", err)
+		if pe, ok := err.(*os.PathError); ok && pe.Err == syscall.EPIPE {
+			// ignore broken pipe
+		} else {
+			log.Fatalln("error:", err)
+		}
 	}
 }
 

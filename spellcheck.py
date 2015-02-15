@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import json
 import sys
+import errno
 from collections import OrderedDict
 
 from enchant.checker import SpellChecker
@@ -31,7 +32,12 @@ if __name__ == "__main__":
         pkg = json.loads(line, object_pairs_hook=OrderedDict)
         misspelled_documentation = spellcheck(pkg)
         if misspelled_documentation:
-            print json.dumps(OrderedDict([
-                ("PackageName", pkg.get("PackageName", "")),
-                ("Documentation", misspelled_documentation),
-            ]), separators=(",", ":"))
+            try:
+                print json.dumps(OrderedDict([
+                    ("PackageName", pkg.get("PackageName", "")),
+                    ("Documentation", misspelled_documentation),
+                ]), separators=(",", ":"))
+            except IOError as error:
+                if error.errno == errno.EPIPE:
+                    break
+                raise

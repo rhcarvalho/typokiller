@@ -27,7 +27,7 @@ Options:
 Commands:
   read       For each PATH, read the documentation of Go packages and outputs metadata to STDOUT
   fix        Reads spelling error information from STDIN and allows for interative patching`
-	arguments, _ := docopt.Parse(usage, nil, true, "typokiller 0.1", false)
+	arguments, _ := docopt.Parse(usage, nil, true, "typokiller 0.2", false)
 
 	if arguments["fix"].(bool) {
 		Fix()

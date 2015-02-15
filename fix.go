@@ -9,6 +9,7 @@ import (
 	termbox "github.com/nsf/termbox-go"
 )
 
+// Fix turns the terminal into an interactive UI for fixing typos.
 func Fix(misspellings <-chan *Misspelling) {
 	ui := NewFixUI()
 
@@ -26,6 +27,7 @@ func Fix(misspellings <-chan *Misspelling) {
 	ui.Mainloop()
 }
 
+// FixUI has the state necessary in the UI.
 type FixUI struct {
 	Misspellings     []*Misspelling
 	Index            int
@@ -33,6 +35,7 @@ type FixUI struct {
 	DoneLoadingInput bool
 }
 
+// NewFixUI creates a new FixUI.
 func NewFixUI() *FixUI {
 	ui := &FixUI{
 		Printer: NewTermboxPrinter(5, 5, 5, 5),
@@ -40,6 +43,7 @@ func NewFixUI() *FixUI {
 	return ui
 }
 
+// Mainloop draws the current state in the terminal and waits for user input.
 func (t *FixUI) Mainloop() {
 	err := termbox.Init()
 	if err != nil {
@@ -95,6 +99,7 @@ func (t *FixUI) Write(p []byte) (int, error) {
 	return t.Printer.Write(p)
 }
 
+// Next advances to the next misspell.
 func (t *FixUI) Next() {
 	t.Index++
 	if !(t.Index < len(t.Misspellings)) {
@@ -102,6 +107,7 @@ func (t *FixUI) Next() {
 	}
 }
 
+// NextUndefined advances to the next misspell that has an Undefined action.
 func (t *FixUI) NextUndefined() {
 	start := t.Index
 	for {
@@ -121,6 +127,7 @@ func (t *FixUI) NextUndefined() {
 	}
 }
 
+// Previous goes back to the previous misspell.
 func (t *FixUI) Previous() {
 	t.Index--
 	if t.Index < 0 {
@@ -128,12 +135,14 @@ func (t *FixUI) Previous() {
 	}
 }
 
+// Ignore ignores the current misspell.
 func (t *FixUI) Ignore() {
 	m := t.Misspellings[t.Index]
 	m.Action = Action{Type: Ignore}
 	t.NextUndefined()
 }
 
+// Replace replaces the current misspell with a suggestion.
 func (t *FixUI) Replace() {
 	m := t.Misspellings[t.Index]
 	m.Action = Action{
@@ -142,6 +151,7 @@ func (t *FixUI) Replace() {
 	t.NextUndefined()
 }
 
+// Edit replaces the current misspell with custom text.
 func (t *FixUI) Edit() {
 	m := t.Misspellings[t.Index]
 	m.Action = Action{
@@ -150,6 +160,8 @@ func (t *FixUI) Edit() {
 	t.NextUndefined()
 }
 
+// IgnoreAll ignores all misspells with Undefined action that matches the
+// current word.
 func (t *FixUI) IgnoreAll() {
 	m := t.Misspellings[t.Index]
 	word := m.Word
@@ -162,6 +174,7 @@ func (t *FixUI) IgnoreAll() {
 	t.NextUndefined()
 }
 
+// ReplaceAll replaces all occurrences of the current word with a suggestion.
 func (t *FixUI) ReplaceAll() {
 	m := t.Misspellings[t.Index]
 	word := m.Word
@@ -175,6 +188,7 @@ func (t *FixUI) ReplaceAll() {
 	t.NextUndefined()
 }
 
+// EditAll replaces all occurrences of the current word with custom text.
 func (t *FixUI) EditAll() {
 	m := t.Misspellings[t.Index]
 	word := m.Word
@@ -188,6 +202,7 @@ func (t *FixUI) EditAll() {
 	t.NextUndefined()
 }
 
+// Apply applies marked changes to disk.
 func (t *FixUI) Apply() {
 	defer termbox.PollEvent() // stay visible until user presses a key
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
@@ -210,6 +225,7 @@ func (t *FixUI) Apply() {
 	termbox.Flush()
 }
 
+// ReadIntegerInRange interactively reads an integer within the range [a, b].
 func (t *FixUI) ReadIntegerInRange(a, b int) int {
 start:
 	t.Printer.fg |= termbox.AttrBold
@@ -245,6 +261,7 @@ mainloop:
 	return i
 }
 
+// ReadString interactively reads an arbitrary string.
 func (t *FixUI) ReadString() string {
 	t.Printer.fg |= termbox.AttrBold
 	fmt.Fprint(t, "\nreplace with: ")
@@ -282,6 +299,7 @@ mainloop:
 	return string(v)
 }
 
+// Draw draws the current state of the UI.
 func (t *FixUI) Draw() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	defer termbox.Flush()

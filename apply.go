@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 )
 
+// Apply replaces misspelled words with their respective replacements.
+// It processes changes from bottom to the top of files to do not invalidate
+// offsets.
 func Apply(misspellings []*Misspelling, status chan string) {
 	// Create a priority queue, put the items in it, and
 	// establish the priority queue (heap) invariants.
@@ -45,6 +48,9 @@ func Apply(misspellings []*Misspelling, status chan string) {
 	close(status)
 }
 
+// replaceSlice replaces part of a byte slice with a byte or slice.
+// This is similar in intent to slice assignment as implemented in Python:
+//   a[3:6] = b[1:4]
 func replaceSlice(slice []byte, begin, end int, repl ...byte) []byte {
 	total := len(slice) - (end - begin) + len(repl)
 	if total > cap(slice) {

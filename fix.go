@@ -224,7 +224,7 @@ func (t *FixUI) Apply() {
 	t.DrawBorders()
 	t.Printer.Reset()
 	t.Printer.fg = termbox.ColorGreen
-	fmt.Fprint(t, "applying changes")
+	fmt.Fprintln(t, "applying changes")
 	termbox.Flush()
 
 	status := make(chan string)
@@ -235,7 +235,7 @@ func (t *FixUI) Apply() {
 		fmt.Fprint(t, s)
 		termbox.Flush()
 	}
-	fmt.Fprint(t, "done")
+	fmt.Fprint(t, "\ndone")
 	t.Printer.ResetColors()
 	termbox.Flush()
 }

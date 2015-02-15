@@ -29,25 +29,37 @@ Commands:
   fix        Reads spelling error information from STDIN and allows for interative patching`
 	arguments, _ := docopt.Parse(usage, nil, true, "typokiller 0.2", false)
 
+	var err error
 	if arguments["fix"].(bool) {
 		Fix()
 	} else {
-		Read(arguments["PATH"].([]string)...)
+		err = Read(arguments["PATH"].([]string)...)
+	}
+	if err != nil {
+		log.Fatalln("error:", err)
 	}
 }
 
 // Read reads the documentation of Go packages in paths and outputs metadata to STDOUT.
-func Read(paths ...string) {
+func Read(paths ...string) error {
 	enc := json.NewEncoder(os.Stdout)
 	for _, path := range paths {
 		path, err := filepath.Abs(path)
 		if err != nil {
-			log.Fatalln(err)
+			return err
 		}
-		for _, pkg := range typokiller.ReadDir(path) {
-			enc.Encode(pkg)
+		pkgs, err := typokiller.ReadDir(path)
+		if err != nil {
+			return err
+		}
+		for _, pkg := range pkgs {
+			err = enc.Encode(pkg)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 // Fix reads documentation metadata from STDIN and presents an interactive user

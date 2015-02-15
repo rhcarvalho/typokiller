@@ -5,27 +5,30 @@ import (
 	"go/parser"
 	"go/token"
 	"io/ioutil"
-	"log"
 )
 
 // ReadDir extracts documentation metadata from Go files in path.
 // This includes documentation comments and known identifiers.
-func ReadDir(path string) []*Package {
+func ReadDir(path string) ([]*Package, error) {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, path, nil, parser.ParseComments)
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 	var r []*Package
-	for name, pkg := range pkgs {
-		r = append(r, ReadPackage(name, pkg, fset))
+	for _, pkg := range pkgs {
+		p, err := ReadPackage(pkg, fset)
+		if err != nil {
+			return r, err
+		}
+		r = append(r, p)
 	}
-	return r
+	return r, nil
 }
 
 // ReadPackage extracts comments of a Go package.
-func ReadPackage(name string, pkg *ast.Package, fset *token.FileSet) *Package {
-	p := &Package{Name: name}
+func ReadPackage(pkg *ast.Package, fset *token.FileSet) (*Package, error) {
+	p := &Package{Name: pkg.Name}
 	for _, f := range pkg.Files {
 		// Collect comments
 		for _, c := range f.Comments {
@@ -33,7 +36,7 @@ func ReadPackage(name string, pkg *ast.Package, fset *token.FileSet) *Package {
 			end := fset.Position(c.End())
 			b, err := ioutil.ReadFile(begin.Filename)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
 			content := string(b[begin.Offset:end.Offset])
 			p.Documentation = append(p.Documentation, &Text{Content: content, Position: begin})
@@ -47,5 +50,5 @@ func ReadPackage(name string, pkg *ast.Package, fset *token.FileSet) *Package {
 			return true
 		})
 	}
-	return p
+	return p, nil
 }

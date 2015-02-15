@@ -10,7 +10,7 @@ import (
 )
 
 // Fix turns the terminal into an interactive UI for fixing typos.
-func Fix(misspellings <-chan *Misspelling) {
+func Fix(misspellings <-chan *Misspelling, errs <-chan error) error {
 	ui := NewFixUI()
 
 	// read misspellings channel in a goroutine
@@ -24,7 +24,7 @@ func Fix(misspellings <-chan *Misspelling) {
 	}()
 
 	// block this goroutine in the UI mainloop
-	ui.Mainloop()
+	return ui.Mainloop(errs)
 }
 
 // FixUI has the state necessary in the UI.
@@ -44,53 +44,68 @@ func NewFixUI() *FixUI {
 }
 
 // Mainloop draws the current state in the terminal and waits for user input.
-func (t *FixUI) Mainloop() {
+func (t *FixUI) Mainloop(errs <-chan error) error {
+	// initialize termbox
 	err := termbox.Init()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer termbox.Close()
 	termbox.HideCursor()
 	termbox.SetOutputMode(termbox.Output256)
 	t.Draw()
 
-mainloop:
-	for {
-		switch ev := termbox.PollEvent(); ev.Type {
-		case termbox.EventKey:
-			switch ev.Key {
-			case termbox.KeyEsc:
-				break mainloop
-			case termbox.KeyArrowUp, termbox.KeyArrowRight:
-				t.Next()
-			case termbox.KeyArrowDown, termbox.KeyArrowLeft:
-				t.Previous()
-			default:
-				switch ev.Ch {
-				case 'i':
-					t.Ignore()
-				case 'I':
-					t.IgnoreAll()
-				case 'r':
-					t.Replace()
-				case 'R':
-					t.ReplaceAll()
-				case 'e':
-					t.Edit()
-				case 'E':
-					t.EditAll()
-				case 'n':
-					t.NextUndefined()
-				case 'a':
-					t.Apply()
-				case 'q':
-					break mainloop
-				}
-			}
-		case termbox.EventError:
-			panic(ev.Err)
+	events := make(chan termbox.Event)
+	go func() {
+		for {
+			events <- termbox.PollEvent()
 		}
-		t.Draw()
+	}()
+
+	// loop until there's an upstream error or user request to quit
+	for {
+		select {
+		case err, ok := <-errs:
+			if ok {
+				return err
+			}
+		case ev := <-events:
+			switch ev.Type {
+			case termbox.EventKey:
+				switch ev.Key {
+				case termbox.KeyEsc:
+					return nil
+				case termbox.KeyArrowUp, termbox.KeyArrowRight:
+					t.Next()
+				case termbox.KeyArrowDown, termbox.KeyArrowLeft:
+					t.Previous()
+				default:
+					switch ev.Ch {
+					case 'i':
+						t.Ignore()
+					case 'I':
+						t.IgnoreAll()
+					case 'r':
+						t.Replace()
+					case 'R':
+						t.ReplaceAll()
+					case 'e':
+						t.Edit()
+					case 'E':
+						t.EditAll()
+					case 'n':
+						t.NextUndefined()
+					case 'a':
+						t.Apply()
+					case 'q':
+						return nil
+					}
+				}
+			case termbox.EventError:
+				return ev.Err
+			}
+			t.Draw()
+		}
 	}
 }
 

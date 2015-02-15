@@ -4,6 +4,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -31,7 +32,7 @@ Commands:
 
 	var err error
 	if arguments["fix"].(bool) {
-		Fix()
+		err = Fix()
 	} else {
 		err = Read(arguments["PATH"].([]string)...)
 	}
@@ -64,13 +65,18 @@ func Read(paths ...string) error {
 
 // Fix reads documentation metadata from STDIN and presents an interactive user
 // interface to perform actions on potential misspells.
-func Fix() {
+func Fix() error {
 	misspellings := make(chan *typokiller.Misspelling)
+	errs := make(chan error)
 
 	// read STDIN in a new goroutine
 	go func() {
+		defer close(misspellings)
+		defer close(errs)
+
 		reader := bufio.NewReaderSize(os.Stdin, 64*1024*1024) // 64 MB
 		var err error
+
 		for {
 			line, err := reader.ReadBytes('\n')
 			if err != nil {
@@ -79,7 +85,8 @@ func Fix() {
 
 			var pkg *typokiller.Package
 			if err = json.Unmarshal(line, &pkg); err != nil {
-				log.Fatalf("error: %v\nline: %s\n", err, line)
+				errs <- fmt.Errorf("parsing '%s': %v", line, err)
+				continue
 			}
 
 			for _, text := range pkg.Documentation {
@@ -90,11 +97,12 @@ func Fix() {
 				}
 			}
 		}
+
 		if err != nil && err != io.EOF {
-			log.Fatalln(err)
+			errs <- err
+			return
 		}
-		close(misspellings)
 	}()
 
-	typokiller.Fix(misspellings)
+	return typokiller.Fix(misspellings, errs)
 }

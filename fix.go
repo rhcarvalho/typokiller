@@ -9,10 +9,35 @@ import (
 	termbox "github.com/nsf/termbox-go"
 )
 
-func Fix(misspellings []*Misspelling) {
-	if len(misspellings) == 0 {
-		return
+func Fix(misspellings <-chan *Misspelling) {
+	ui := NewFixUI()
+
+	// read misspellings channel in a goroutine
+	go func() {
+		for misspelling := range misspellings {
+			ui.Misspellings = append(ui.Misspellings, misspelling)
+			ui.Draw()
+		}
+	}()
+
+	// block this goroutine in the UI mainloop
+	ui.Mainloop()
+}
+
+type FixUI struct {
+	Misspellings []*Misspelling
+	Index        int
+	Printer      *TermboxPrinter
+}
+
+func NewFixUI() *FixUI {
+	ui := &FixUI{
+		Printer: NewTermboxPrinter(5, 5, 5, 5),
 	}
+	return ui
+}
+
+func (t *FixUI) Mainloop() {
 	err := termbox.Init()
 	if err != nil {
 		panic(err)
@@ -20,9 +45,7 @@ func Fix(misspellings []*Misspelling) {
 	defer termbox.Close()
 	termbox.HideCursor()
 	termbox.SetOutputMode(termbox.Output256)
-
-	ui := NewFixUI(misspellings)
-	ui.Draw()
+	t.Draw()
 
 mainloop:
 	for {
@@ -32,27 +55,27 @@ mainloop:
 			case termbox.KeyEsc:
 				break mainloop
 			case termbox.KeyArrowUp, termbox.KeyArrowRight:
-				ui.Next()
+				t.Next()
 			case termbox.KeyArrowDown, termbox.KeyArrowLeft:
-				ui.Previous()
+				t.Previous()
 			default:
 				switch ev.Ch {
 				case 'i':
-					ui.Ignore()
+					t.Ignore()
 				case 'I':
-					ui.IgnoreAll()
+					t.IgnoreAll()
 				case 'r':
-					ui.Replace()
+					t.Replace()
 				case 'R':
-					ui.ReplaceAll()
+					t.ReplaceAll()
 				case 'e':
-					ui.Edit()
+					t.Edit()
 				case 'E':
-					ui.EditAll()
+					t.EditAll()
 				case 'n':
-					ui.NextUndefined()
+					t.NextUndefined()
 				case 'a':
-					ui.Apply()
+					t.Apply()
 				case 'q':
 					break mainloop
 				}
@@ -60,22 +83,8 @@ mainloop:
 		case termbox.EventError:
 			panic(ev.Err)
 		}
-		ui.Draw()
+		t.Draw()
 	}
-}
-
-type FixUI struct {
-	Misspellings []*Misspelling
-	Index        int
-	Printer      *TermboxPrinter
-}
-
-func NewFixUI(misspellings []*Misspelling) *FixUI {
-	ui := &FixUI{
-		Misspellings: misspellings,
-		Printer:      NewTermboxPrinter(5, 5, 5, 5),
-	}
-	return ui
 }
 
 // Write implements the io.Writer interface.
@@ -278,6 +287,11 @@ func (t *FixUI) Draw() {
 
 	tp := t.Printer
 	tp.Reset()
+
+	if len(t.Misspellings) == 0 {
+		fmt.Fprint(t, "No spelling errors!")
+		return
+	}
 
 	fmt.Fprint(t, "Spelling error ")
 	tp.Bold()

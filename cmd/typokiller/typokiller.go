@@ -52,30 +52,36 @@ func Read(paths ...string) {
 // Fix reads documentation metadata from STDIN and presents an interactive user
 // interface to perform actions on potential misspells.
 func Fix() {
-	reader := bufio.NewReaderSize(os.Stdin, 64*1024*1024) // 64 MB
-	var misspellings []*typokiller.Misspelling
-	var err error
-	for {
-		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			break
-		}
+	misspellings := make(chan *typokiller.Misspelling)
 
-		var pkg *typokiller.Package
-		if err = json.Unmarshal(line, &pkg); err != nil {
-			log.Fatalf("error: %v\nline: %s\n", err, line)
-		}
+	// read STDIN in a new goroutine
+	go func() {
+		reader := bufio.NewReaderSize(os.Stdin, 64*1024*1024) // 64 MB
+		var err error
+		for {
+			line, err := reader.ReadBytes('\n')
+			if err != nil {
+				break
+			}
 
-		for _, text := range pkg.Documentation {
-			text.Package = pkg
-			for _, misspelling := range text.Misspellings {
-				misspelling.Text = text
-				misspellings = append(misspellings, misspelling)
+			var pkg *typokiller.Package
+			if err = json.Unmarshal(line, &pkg); err != nil {
+				log.Fatalf("error: %v\nline: %s\n", err, line)
+			}
+
+			for _, text := range pkg.Documentation {
+				text.Package = pkg
+				for _, misspelling := range text.Misspellings {
+					misspelling.Text = text
+					misspellings <- misspelling
+				}
 			}
 		}
-	}
-	if err != nil && err != io.EOF {
-		log.Fatalln(err)
-	}
+		if err != nil && err != io.EOF {
+			log.Fatalln(err)
+		}
+		close(misspellings)
+	}()
+
 	typokiller.Fix(misspellings)
 }

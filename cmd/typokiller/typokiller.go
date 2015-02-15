@@ -1,3 +1,4 @@
+// typokiller is your interactive tool to find and fix typos.
 package main
 
 import (
@@ -17,7 +18,7 @@ func main() {
   typokiller read PATH ...
   typokiller fix
 
-Find comments in Go source files and interactively fix typos.
+Interactive tool to find and fix typos in codebases.
 
 Options:
   -h --help  Show this usage help

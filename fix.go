@@ -18,6 +18,8 @@ func Fix(misspellings <-chan *Misspelling) {
 			ui.Misspellings = append(ui.Misspellings, misspelling)
 			ui.Draw()
 		}
+		ui.DoneLoadingInput = true
+		ui.Draw()
 	}()
 
 	// block this goroutine in the UI mainloop
@@ -25,9 +27,10 @@ func Fix(misspellings <-chan *Misspelling) {
 }
 
 type FixUI struct {
-	Misspellings []*Misspelling
-	Index        int
-	Printer      *TermboxPrinter
+	Misspellings     []*Misspelling
+	Index            int
+	Printer          *TermboxPrinter
+	DoneLoadingInput bool
 }
 
 func NewFixUI() *FixUI {
@@ -289,7 +292,11 @@ func (t *FixUI) Draw() {
 	tp.Reset()
 
 	if len(t.Misspellings) == 0 {
-		fmt.Fprint(t, "No spelling errors!")
+		if t.DoneLoadingInput {
+			fmt.Fprint(t, "No spelling errors!")
+		} else {
+			fmt.Fprint(t, "Loading data...")
+		}
 		return
 	}
 
@@ -300,6 +307,9 @@ func (t *FixUI) Draw() {
 	fmt.Fprint(t, " of ")
 	tp.Bold()
 	fmt.Fprintf(t, "%d", len(t.Misspellings))
+	if !t.DoneLoadingInput {
+		fmt.Fprint(t, "+")
+	}
 	tp.ResetColors()
 
 	m := t.Misspellings[t.Index]

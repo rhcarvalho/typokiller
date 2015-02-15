@@ -38,7 +38,7 @@ type FixUI struct {
 // NewFixUI creates a new FixUI.
 func NewFixUI() *FixUI {
 	ui := &FixUI{
-		Printer: NewTermboxPrinter(5, 5, 5, 5),
+		Printer: NewTermboxPrinter(5, 3, 5, 3),
 	}
 	return ui
 }

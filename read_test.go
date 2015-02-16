@@ -48,6 +48,16 @@ func TestReadDirAsciiDoc(t *testing.T) {
 	}
 }
 
+func TestBadPath(t *testing.T) {
+	path := "testdata/bad/path"
+	for _, readDirer := range []ReadDirer{GoFormat{}, AsciiDocFormat{}} {
+		_, err := readDirer.ReadDir(path)
+		if err == nil {
+			t.Errorf("%#v.ReadDir(%q) returned err=%v, want nil", readDirer, path, err)
+		}
+	}
+}
+
 func haveSameElements(a, b []string) bool {
 	m := make(map[string]bool)
 	for _, k := range a {

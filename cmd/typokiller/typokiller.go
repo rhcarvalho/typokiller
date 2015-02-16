@@ -17,25 +17,32 @@ import (
 
 func main() {
 	usage := `Usage:
-  typokiller read PATH ...
+  typokiller read [options] PATH ...
   typokiller fix
 
 Interactive tool to find and fix typos in codebases.
 
 Options:
-  -h --help  Show this usage help
-  --version  Show version
+  -h --help     Show this usage help
+  --format=EXT  Document format [default: go]
+  --version     Show version
 
 Commands:
   read       For each PATH, read the documentation of Go packages and outputs metadata to STDOUT
-  fix        Reads spelling error information from STDIN and allows for interative patching`
+  fix        Reads spelling error information from STDIN and allows for interative patching
+
+Available formats:
+  go         Go source code
+  adoc       AsciiDoc documents
+`
 	arguments, _ := docopt.Parse(usage, nil, true, "typokiller 0.2", false)
 
 	var err error
 	if arguments["fix"].(bool) {
 		err = Fix()
 	} else {
-		err = Read(arguments["PATH"].([]string)...)
+		format := arguments["--format"].(string)
+		err = Read(format, arguments["PATH"].([]string)...)
 	}
 	if err != nil {
 		if pe, ok := err.(*os.PathError); ok && pe.Err == syscall.EPIPE {
@@ -46,15 +53,22 @@ Commands:
 	}
 }
 
-// Read reads the documentation of Go packages in paths and outputs metadata to STDOUT.
-func Read(paths ...string) error {
+// Read reads the documentation in paths and outputs metadata to STDOUT.
+func Read(format string, paths ...string) error {
 	enc := json.NewEncoder(os.Stdout)
 	for _, path := range paths {
 		path, err := filepath.Abs(path)
 		if err != nil {
 			return err
 		}
-		pkgs, err := typokiller.ReadDir(path)
+		var readDirer typokiller.ReadDirer
+		switch format {
+		case "adoc":
+			readDirer = typokiller.AsciiDocFormat{}
+		default:
+			readDirer = typokiller.GoFormat{}
+		}
+		pkgs, err := readDirer.ReadDir(path)
 		if err != nil {
 			return err
 		}

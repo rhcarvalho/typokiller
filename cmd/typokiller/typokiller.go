@@ -13,6 +13,8 @@ import (
 
 	docopt "github.com/docopt/docopt-go"
 	"github.com/rhcarvalho/typokiller"
+	"github.com/rhcarvalho/typokiller/pkg/fix"
+	"github.com/rhcarvalho/typokiller/pkg/read"
 )
 
 func main() {
@@ -61,14 +63,14 @@ func Read(format string, paths ...string) error {
 		if err != nil {
 			return err
 		}
-		var readDirer typokiller.ReadDirer
+		var dirReader read.DirReader
 		switch format {
 		case "adoc":
-			readDirer = typokiller.AsciiDocFormat{}
+			dirReader = read.AsciiDocFormat{}
 		default:
-			readDirer = typokiller.GoFormat{}
+			dirReader = read.GoFormat{}
 		}
-		pkgs, err := readDirer.ReadDir(path)
+		pkgs, err := dirReader.ReadDir(path)
 		if err != nil {
 			return err
 		}
@@ -123,5 +125,5 @@ func Fix() error {
 		}
 	}()
 
-	return typokiller.Fix(misspellings, errs)
+	return fix.Fix(misspellings, errs)
 }

@@ -1,15 +1,17 @@
-package typokiller
+package apply
 
 import (
 	"container/heap"
 	"fmt"
 	"io/ioutil"
+
+	"github.com/rhcarvalho/typokiller"
 )
 
 // Apply replaces misspelled words with their respective replacements.
 // It processes changes from bottom to the top of files to do not invalidate
 // offsets.
-func Apply(misspellings []*Misspelling, status chan string) {
+func Apply(misspellings []*typokiller.Misspelling, status chan string) {
 	// Create a priority queue, put the items in it, and
 	// establish the priority queue (heap) invariants.
 	pq := make(PriorityQueue, len(misspellings))
@@ -26,7 +28,7 @@ func Apply(misspellings []*Misspelling, status chan string) {
 	for max := len(pq); max > 0; max-- {
 		item := heap.Pop(&pq).(*Item)
 		m := item.value
-		if m.Action.Type == Replace {
+		if m.Action.Type == typokiller.Replace {
 			status <- "."
 			pos := m.Text.Position
 
@@ -67,9 +69,9 @@ func replaceSlice(slice []byte, begin, end int, repl ...byte) []byte {
 
 // An Item is something we manage in a priority queue.
 type Item struct {
-	value    *Misspelling // The value of the item; arbitrary.
-	priority int          // The priority of the item in the queue.
-	index    int          // The index of the item in the heap.
+	value    *typokiller.Misspelling // The value of the item; arbitrary.
+	priority int                     // The priority of the item in the queue.
+	index    int                     // The index of the item in the heap.
 }
 
 // A PriorityQueue implements heap.Interface and holds Items.

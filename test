@@ -1,2 +1,2 @@
 #!/bin/bash
-./spellcheck_test.py && go test
+./spellcheck_test.py && go test ./...

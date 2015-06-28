@@ -1,4 +1,4 @@
-package typokiller
+package print
 
 import (
 	"unicode/utf8"
@@ -9,7 +9,7 @@ import (
 // TermboxPrinter is an abstraction on top of termbox to facilitate outputting
 // text in a text-based terminal.
 type TermboxPrinter struct {
-	x, y        int               // current cursor position (column, line)
+	X, Y        int               // current cursor position (column, line)
 	left, right int               // left and right margins
 	top, bottom int               // top and bottom margins
 	fg, bg      termbox.Attribute // foreground and background colors
@@ -22,8 +22,8 @@ func NewTermboxPrinter(left, top, right, bottom int) *TermboxPrinter {
 
 // Reset resets the printer to its initial state.
 func (tp *TermboxPrinter) Reset() {
-	tp.x = 0
-	tp.y = 0
+	tp.X = 0
+	tp.Y = 0
 	tp.ResetColors()
 }
 
@@ -31,6 +31,16 @@ func (tp *TermboxPrinter) Reset() {
 func (tp *TermboxPrinter) ResetColors() {
 	tp.fg = termbox.ColorDefault
 	tp.bg = termbox.ColorDefault
+}
+
+// Foreground returns the printer's foreground color.
+func (tp *TermboxPrinter) Foreground() termbox.Attribute {
+	return tp.fg
+}
+
+// SetForeground sets the printer's foreground color.
+func (tp *TermboxPrinter) SetForeground(fg termbox.Attribute) {
+	tp.fg = fg
 }
 
 // Write implements the io.Writer interface.
@@ -55,14 +65,14 @@ func (tp *TermboxPrinter) WriteRune(r rune) (n int, err error) {
 	}
 	w, _ := termbox.Size()
 	maxX := w - tp.right - tp.left - 1
-	if tp.x >= maxX {
+	if tp.X >= maxX {
 		// TODO new line rune should be introduced by reshape method,
 		// only when needed.
-		termbox.SetCell(tp.left+maxX, tp.top+tp.y, '⏎', termbox.ColorWhite, termbox.ColorRed)
+		termbox.SetCell(tp.left+maxX, tp.top+tp.Y, '⏎', termbox.ColorWhite, termbox.ColorRed)
 		tp.NewLine()
 	}
-	termbox.SetCell(tp.left+tp.x, tp.top+tp.y, r, tp.fg, tp.bg)
-	tp.x++
+	termbox.SetCell(tp.left+tp.X, tp.top+tp.Y, r, tp.fg, tp.bg)
+	tp.X++
 	return
 }
 
@@ -73,8 +83,8 @@ func (tp *TermboxPrinter) NewLine() {
 
 // SkipLines is equivalent to calling NewLine n times.
 func (tp *TermboxPrinter) SkipLines(n int) {
-	tp.x = 0
-	tp.y += n
+	tp.X = 0
+	tp.Y += n
 }
 
 // Bold makes the printer print bold characters.

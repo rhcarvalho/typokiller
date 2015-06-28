@@ -1,10 +1,12 @@
-package typokiller
+package read
 
 import (
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"io/ioutil"
+
+	"github.com/rhcarvalho/typokiller"
 )
 
 // GoFormat can read documentation from Go source code.
@@ -12,13 +14,13 @@ type GoFormat struct{}
 
 // ReadDir extracts documentation metadata from Go files in path.
 // This includes documentation comments and known identifiers.
-func (f GoFormat) ReadDir(path string) ([]*Package, error) {
+func (f GoFormat) ReadDir(path string) ([]*typokiller.Package, error) {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, path, nil, parser.ParseComments)
 	if err != nil {
 		return nil, err
 	}
-	var r []*Package
+	var r []*typokiller.Package
 	for _, pkg := range pkgs {
 		p, err := f.ReadPackage(pkg, fset)
 		if err != nil {
@@ -30,8 +32,8 @@ func (f GoFormat) ReadDir(path string) ([]*Package, error) {
 }
 
 // ReadPackage extracts comments of a Go package.
-func (GoFormat) ReadPackage(pkg *ast.Package, fset *token.FileSet) (*Package, error) {
-	p := &Package{Name: pkg.Name}
+func (GoFormat) ReadPackage(pkg *ast.Package, fset *token.FileSet) (*typokiller.Package, error) {
+	p := &typokiller.Package{Name: pkg.Name}
 	for _, f := range pkg.Files {
 		// Collect comments
 		for _, c := range f.Comments {
@@ -42,7 +44,7 @@ func (GoFormat) ReadPackage(pkg *ast.Package, fset *token.FileSet) (*Package, er
 				return nil, err
 			}
 			content := string(b[begin.Offset:end.Offset])
-			p.Documentation = append(p.Documentation, &Text{Content: content, Position: begin})
+			p.Documentation = append(p.Documentation, &typokiller.Text{Content: content, Position: begin})
 		}
 
 		// Collect identifiers

@@ -30,7 +30,7 @@ Build and install Go executable:
 
 ```bash
 $ cd typokiller
-$ go install ./...
+$ go get ./...
 ```
 
 

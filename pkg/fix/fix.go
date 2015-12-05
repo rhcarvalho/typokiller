@@ -7,13 +7,13 @@ import (
 	"unicode"
 
 	termbox "github.com/nsf/termbox-go"
-	"github.com/rhcarvalho/typokiller"
 	"github.com/rhcarvalho/typokiller/pkg/apply"
 	"github.com/rhcarvalho/typokiller/pkg/print"
+	"github.com/rhcarvalho/typokiller/pkg/types"
 )
 
 // Fix turns the terminal into an interactive UI for fixing typos.
-func Fix(misspellings <-chan *typokiller.Misspelling, errs <-chan error) error {
+func Fix(misspellings <-chan *types.Misspelling, errs <-chan error) error {
 	ui := NewUI()
 
 	// read misspellings channel in a goroutine
@@ -32,7 +32,7 @@ func Fix(misspellings <-chan *typokiller.Misspelling, errs <-chan error) error {
 
 // UI has the state necessary in the UI.
 type UI struct {
-	Misspellings     []*typokiller.Misspelling
+	Misspellings     []*types.Misspelling
 	Index            int
 	Printer          *print.TermboxPrinter
 	DoneLoadingInput bool
@@ -134,7 +134,7 @@ func (ui *UI) NextUndefined() {
 			ui.Index = 0
 		}
 		m := ui.Misspellings[ui.Index]
-		if m.Action.Type == typokiller.Undefined {
+		if m.Action.Type == types.Undefined {
 			break
 		}
 		if ui.Index == start {
@@ -156,15 +156,15 @@ func (ui *UI) Previous() {
 // Ignore ignores the current misspell.
 func (ui *UI) Ignore() {
 	m := ui.Misspellings[ui.Index]
-	m.Action = typokiller.Action{Type: typokiller.Ignore}
+	m.Action = types.Action{Type: types.Ignore}
 	ui.NextUndefined()
 }
 
 // Replace replaces the current misspell with a suggestion.
 func (ui *UI) Replace() {
 	m := ui.Misspellings[ui.Index]
-	m.Action = typokiller.Action{
-		Type:        typokiller.Replace,
+	m.Action = types.Action{
+		Type:        types.Replace,
 		Replacement: m.Suggestions[ui.ReadIntegerInRange(1, len(m.Suggestions))-1]}
 	ui.NextUndefined()
 }
@@ -172,8 +172,8 @@ func (ui *UI) Replace() {
 // Edit replaces the current misspell with custom text.
 func (ui *UI) Edit() {
 	m := ui.Misspellings[ui.Index]
-	m.Action = typokiller.Action{
-		Type:        typokiller.Replace,
+	m.Action = types.Action{
+		Type:        types.Replace,
 		Replacement: ui.ReadString()}
 	ui.NextUndefined()
 }
@@ -185,8 +185,8 @@ func (ui *UI) IgnoreAll() {
 	word := m.Word
 	for i := ui.Index; i < len(ui.Misspellings); i++ {
 		m = ui.Misspellings[i]
-		if m.Word == word && m.Action.Type == typokiller.Undefined {
-			m.Action = typokiller.Action{Type: typokiller.Ignore}
+		if m.Word == word && m.Action.Type == types.Undefined {
+			m.Action = types.Action{Type: types.Ignore}
 		}
 	}
 	ui.NextUndefined()
@@ -199,8 +199,8 @@ func (ui *UI) ReplaceAll() {
 	replacement := m.Suggestions[ui.ReadIntegerInRange(1, len(m.Suggestions))-1]
 	for i := ui.Index; i < len(ui.Misspellings); i++ {
 		m = ui.Misspellings[i]
-		if m.Word == word && m.Action.Type == typokiller.Undefined {
-			m.Action = typokiller.Action{Type: typokiller.Replace, Replacement: replacement}
+		if m.Word == word && m.Action.Type == types.Undefined {
+			m.Action = types.Action{Type: types.Replace, Replacement: replacement}
 		}
 	}
 	ui.NextUndefined()
@@ -213,8 +213,8 @@ func (ui *UI) EditAll() {
 	replacement := ui.ReadString()
 	for i := ui.Index; i < len(ui.Misspellings); i++ {
 		m = ui.Misspellings[i]
-		if m.Word == word && m.Action.Type == typokiller.Undefined {
-			m.Action = typokiller.Action{Type: typokiller.Replace, Replacement: replacement}
+		if m.Word == word && m.Action.Type == types.Undefined {
+			m.Action = types.Action{Type: types.Replace, Replacement: replacement}
 		}
 	}
 	ui.NextUndefined()
@@ -416,13 +416,13 @@ func (ui *UI) Draw() {
 	tp.ResetColors()
 	fmt.Fprintln(ui, "uit")
 
-	if m.Action.Type != typokiller.Undefined {
+	if m.Action.Type != types.Undefined {
 		tp.SkipLines(1)
 		tp.SetForeground(termbox.ColorBlue)
 		switch m.Action.Type {
-		case typokiller.Ignore:
+		case types.Ignore:
 			fmt.Fprintln(ui, "ignored")
-		case typokiller.Replace:
+		case types.Replace:
 			fmt.Fprintf(ui, "replace with '%s'\n", m.Action.Replacement)
 		}
 		tp.ResetColors()

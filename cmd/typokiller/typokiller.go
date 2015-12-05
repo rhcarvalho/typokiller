@@ -12,9 +12,9 @@ import (
 	"syscall"
 
 	docopt "github.com/docopt/docopt-go"
-	"github.com/rhcarvalho/typokiller"
 	"github.com/rhcarvalho/typokiller/pkg/fix"
 	"github.com/rhcarvalho/typokiller/pkg/read"
+	"github.com/rhcarvalho/typokiller/pkg/types"
 )
 
 func main() {
@@ -87,7 +87,7 @@ func Read(format string, paths ...string) error {
 // Fix reads documentation metadata from STDIN and presents an interactive user
 // interface to perform actions on potential misspells.
 func Fix() error {
-	misspellings := make(chan *typokiller.Misspelling)
+	misspellings := make(chan *types.Misspelling)
 	errs := make(chan error)
 
 	// read STDIN in a new goroutine
@@ -104,7 +104,7 @@ func Fix() error {
 				break
 			}
 
-			var pkg *typokiller.Package
+			var pkg *types.Package
 			if err = json.Unmarshal(line, &pkg); err != nil {
 				errs <- fmt.Errorf("parsing '%s': %v", line, err)
 				continue

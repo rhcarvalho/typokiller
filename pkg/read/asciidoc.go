@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rhcarvalho/typokiller"
+	"github.com/rhcarvalho/typokiller/pkg/types"
 )
 
 // AsciiDocFormat can read documentation from AsciiDoc files.
@@ -15,12 +15,12 @@ type AsciiDocFormat struct{}
 
 // ReadDir extracts AsciiDoc-formatted documentation from files in path.
 // It does not recurse into subdirectories.
-func (f AsciiDocFormat) ReadDir(path string) ([]*typokiller.Package, error) {
+func (f AsciiDocFormat) ReadDir(path string) ([]*types.Package, error) {
 	entries, err := ioutil.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
-	var r []*typokiller.Package
+	var r []*types.Package
 	for _, entry := range entries {
 		if f.IsAsciiDocFile(entry) {
 			p, err := f.ReadFile(filepath.Join(path, entry.Name()), entry)
@@ -34,15 +34,15 @@ func (f AsciiDocFormat) ReadDir(path string) ([]*typokiller.Package, error) {
 }
 
 // ReadFile extracts paragraphs from AsciiDoc files.
-func (f AsciiDocFormat) ReadFile(path string, fi os.FileInfo) (*typokiller.Package, error) {
+func (f AsciiDocFormat) ReadFile(path string, fi os.FileInfo) (*types.Package, error) {
 	doc, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	p := &typokiller.Package{Name: fi.Name()}
+	p := &types.Package{Name: fi.Name()}
 	offset := 0
 	for _, paragraph := range bytes.SplitAfter(doc, []byte("\n\n")) {
-		p.Documentation = append(p.Documentation, &typokiller.Text{
+		p.Documentation = append(p.Documentation, &types.Text{
 			Content: string(paragraph),
 			Position: token.Position{
 				Filename: path,

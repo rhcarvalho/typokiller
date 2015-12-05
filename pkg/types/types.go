@@ -1,4 +1,4 @@
-package typokiller
+package types
 
 import "go/token"
 

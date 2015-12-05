@@ -53,6 +53,13 @@ $ ./killtypos $(find /PATH/TO/GIT/REPO -type d -not \( -name .git -prune -o -nam
 
 This will find typos in all directories under `/PATH/TO/GIT/REPO` (inclusive), ignoring anything under `.git` and `Godeps`.
 
+typokiller also supports an additional format: AsciiDoc. You can use it to fix
+typos in documentation or generally files in the AsciiDoc format:
+
+```bash
+$ ./killtypos --format=adoc $(find /PATH/TO/GIT/REPO -type d -not \( -name .git -prune \))
+```
+
 You can also use the parts separately for debugging or integration with other UNIX tools:
 
 ```bash

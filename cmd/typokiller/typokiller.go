@@ -18,17 +18,19 @@ import (
 
 // Main represents the main program execution.
 type Main struct {
-	Stdin  io.Reader
-	Stdout io.Writer
-	Stderr io.Writer
+	ExecutableName string
+	Stdin          io.Reader
+	Stdout         io.Writer
+	Stderr         io.Writer
 }
 
 // NewMain returns a new instance of Main connect to the standard input/output.
 func NewMain() *Main {
 	return &Main{
-		Stdin:  os.Stdin,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+		ExecutableName: os.Args[0],
+		Stdin:          os.Stdin,
+		Stdout:         os.Stdout,
+		Stderr:         os.Stderr,
 	}
 }
 
@@ -38,6 +40,8 @@ func main() {
 typokiller is a tool to find and fix typos in text files, source code, and documentation.
 
 Usage:
+  typokiller init [NAME]
+  typokiller status
   typokiller read [options] PATH ...
   typokiller fix
 
@@ -47,6 +51,8 @@ Options:
   --version     Show version
 
 Commands:
+  init       Initializes a new typo-hunting project
+  status     Reports project status
   read       For each PATH, read the documentation of Go packages and outputs metadata to STDOUT
   fix        Reads spelling error information from STDIN and allows for interative patching
 
@@ -60,6 +66,11 @@ Available formats:
 	var err error
 
 	switch {
+	case args["init"]:
+		name, _ := args["NAME"].(string)
+		err = main.Init(name)
+	case args["status"]:
+		err = main.Status()
 	case args["read"]:
 		format := args["--format"].(string)
 		err = main.Read(format, args["PATH"].([]string)...)

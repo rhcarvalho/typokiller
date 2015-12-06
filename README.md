@@ -3,6 +3,20 @@ typokiller
 
 Exterminate typos. Now.
 
+`typokiller` is a tool for finding and fixing typos in text files, from source
+code comments to documentation.
+
+Currently supported input formats:
+- Go code
+- AsciiDoc files
+
+Planned formats:
+- Pure text files
+- Markdown
+- Python docstrings and comments
+- Wikipedia dumps
+- Diff/patch files
+
 
 Hacking
 -------

@@ -19,6 +19,7 @@ import (
 // Main represents the main program execution.
 type Main struct {
 	ExecutableName string
+	DatabasePath   string
 	Stdin          io.Reader
 	Stdout         io.Writer
 	Stderr         io.Writer
@@ -28,6 +29,7 @@ type Main struct {
 func NewMain() *Main {
 	return &Main{
 		ExecutableName: os.Args[0],
+		DatabasePath:   defaultDatabasePath,
 		Stdin:          os.Stdin,
 		Stdout:         os.Stdout,
 		Stderr:         os.Stderr,

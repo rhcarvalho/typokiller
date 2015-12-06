@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -22,12 +23,12 @@ const (
 // defaultDatabasePath and sets the project name.
 // It is valid to reinitialize a project, effectively renaming it.
 func (m *Main) Init(name string) error {
-	err := os.MkdirAll(".typokiller", defaultDirMode)
+	err := os.MkdirAll(filepath.Dir(m.DatabasePath), defaultDirMode)
 	if err != nil {
 		return err
 	}
 
-	db, err := openDB(true)
+	db, err := m.openDB(true)
 	if err != nil {
 		return err
 	}
@@ -47,10 +48,10 @@ func (m *Main) Init(name string) error {
 }
 
 // openDB opens a Bolt database with default options. ErrNoProject is returned
-// if create is false and the defaultDatabasePath does not exist.
-func openDB(create bool) (*bolt.DB, error) {
+// if create is false and the m.DatabasePath does not exist.
+func (m *Main) openDB(create bool) (*bolt.DB, error) {
 	if !create {
-		_, err := os.Stat(defaultDatabasePath)
+		_, err := os.Stat(m.DatabasePath)
 		if os.IsNotExist(err) {
 			return nil, ErrNoProject
 		}
@@ -58,5 +59,5 @@ func openDB(create bool) (*bolt.DB, error) {
 	opts := &bolt.Options{
 		Timeout: 1 * time.Second,
 	}
-	return bolt.Open(defaultDatabasePath, defaultFileMode, opts)
+	return bolt.Open(m.DatabasePath, defaultFileMode, opts)
 }

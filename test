@@ -1,2 +1,9 @@
 #!/bin/bash
-./spellcheck_test.py && go test ./...
+set -e
+
+echo "Python tests:"
+./spellcheck_test.py
+
+echo
+echo "Go tests:"
+go test "$@" ./...

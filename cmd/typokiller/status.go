@@ -22,7 +22,7 @@ type status struct {
 
 // Status prints information about the project to m.Stdout.
 func (m *Main) Status() error {
-	db, err := openDB(false)
+	db, err := m.openDB(false)
 	if err != nil {
 		return err
 	}

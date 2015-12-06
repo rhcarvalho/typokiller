@@ -16,6 +16,22 @@ import (
 	"github.com/rhcarvalho/typokiller/pkg/types"
 )
 
+// Main represents the main program execution.
+type Main struct {
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
+// NewMain returns a new instance of Main connect to the standard input/output.
+func NewMain() *Main {
+	return &Main{
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
+}
+
 func main() {
 	usage := `Exterminate typos. Now.
 
@@ -38,27 +54,34 @@ Available formats:
   go         Go source code
   adoc       AsciiDoc documents
 `
-	arguments, _ := docopt.Parse(usage, nil, true, "typokiller 0.3", false)
+	args, _ := docopt.Parse(usage, nil, true, "typokiller 0.3", false)
 
+	main := NewMain()
 	var err error
-	if arguments["fix"].(bool) {
-		err = Fix()
-	} else {
-		format := arguments["--format"].(string)
-		err = Read(format, arguments["PATH"].([]string)...)
+
+	switch {
+	case args["read"]:
+		format := args["--format"].(string)
+		err = main.Read(format, args["PATH"].([]string)...)
+	case args["fix"]:
+		err = main.Fix()
+	default:
+		fmt.Fprintln(main.Stdout, usage)
+		os.Exit(1)
 	}
+
 	if err != nil {
 		if pe, ok := err.(*os.PathError); ok && pe.Err == syscall.EPIPE {
 			// ignore broken pipe
 		} else {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			fmt.Fprintf(main.Stderr, "error: %s\n", err)
 			os.Exit(1)
 		}
 	}
 }
 
 // Read reads the documentation in paths and outputs metadata to STDOUT.
-func Read(format string, paths ...string) error {
+func (m *Main) Read(format string, paths ...string) error {
 	enc := json.NewEncoder(os.Stdout)
 	for _, path := range paths {
 		path, err := filepath.Abs(path)
@@ -88,7 +111,7 @@ func Read(format string, paths ...string) error {
 
 // Fix reads documentation metadata from STDIN and presents an interactive user
 // interface to perform actions on potential misspells.
-func Fix() error {
+func (m *Main) Fix() error {
 	misspellings := make(chan *types.Misspelling)
 	errs := make(chan error)
 

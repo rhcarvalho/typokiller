@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -50,7 +49,8 @@ Available formats:
 		if pe, ok := err.(*os.PathError); ok && pe.Err == syscall.EPIPE {
 			// ignore broken pipe
 		} else {
-			log.Fatalln("error:", err)
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			os.Exit(1)
 		}
 	}
 }

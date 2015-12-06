@@ -37,7 +37,7 @@ Available formats:
   go         Go source code
   adoc       AsciiDoc documents
 `
-	arguments, _ := docopt.Parse(usage, nil, true, "typokiller 0.2", false)
+	arguments, _ := docopt.Parse(usage, nil, true, "typokiller 0.3", false)
 
 	var err error
 	if arguments["fix"].(bool) {

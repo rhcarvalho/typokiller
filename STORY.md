@@ -5,6 +5,7 @@ The timeline:
 
 - [Feb 2014](#before-typokiller-ever-existed)
 - [Feb 2015](#the-new-tool)
+- [Dec 2015](#redesign)
 
 
 ## Before `typokiller` Ever Existed
@@ -92,3 +93,44 @@ it to send more PRs to another open source project:
 
 - https://github.com/openshift/origin/pull/1018
 - https://github.com/openshift/openshift-docs/pull/160
+
+
+## Redesign
+
+I've redesigned `typokiller` in my head, and sometimes in a piece of paper, a
+few times. In December 2015, I went ahead and started by re-documenting how
+`typokiller` was to be used.
+
+For one, I knew that I needed some form of data persistence. The pipeline idea
+was fine, but the lack of persistence makes it really hard to work on larger
+projects, and to be able to take back from where you left. No persistence also
+means sadness if the program crashes before any changes were applied.
+
+Reading about possible storage solutions, I decided to use
+[Bolt](https://github.com/boltdb/bolt) for its simplicity and suitability for
+the kind of data I needed to store.
+
+I've introduced the concept of a "working project", to track files in multiple
+locations in disk, and keep track of typo-hunting in them.
+
+As with the first design, I still wanted a functional approach of data
+transformation through a pipeline of actions and potentially long running worker
+processes.
+
+I wanted to get rid of Bash scripts and make it simpler to use `typokiller` as a
+single all-in-one executable.
+
+Learning from Computer-Aided Translation tools, I wanted something like
+"translation memory": an ever growing database of typos and fixes.
+
+And to improve on the number of false positives:
+
+- As an alternative to spell checking all input words, try first to find known
+  typos from a typo database;
+- Sort potential typos by likelihood of being a real typo, so that real typos
+  can be found and fixed even without going through all of the list of potential
+  typos.
+
+The redesign has followed a documentation-first approach. Before writing a
+single line of code, I wrote the manual for how to use `typokiller` and
+explained the main concepts.

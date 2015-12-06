@@ -18,6 +18,12 @@ Planned formats:
 - Diff/patch files
 
 
+## Project's Background Story
+
+Since you're here, you might be interested to know how this project was born. Go
+on and read [the story behind `typokiller`](STORY.md).
+
+
 Hacking
 -------
 

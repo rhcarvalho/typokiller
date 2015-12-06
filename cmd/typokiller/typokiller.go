@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	docopt "github.com/docopt/docopt-go"
+	"github.com/docopt/docopt-go"
 	"github.com/rhcarvalho/typokiller/pkg/fix"
 	"github.com/rhcarvalho/typokiller/pkg/read"
 	"github.com/rhcarvalho/typokiller/pkg/types"

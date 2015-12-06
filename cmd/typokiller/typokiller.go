@@ -17,11 +17,13 @@ import (
 )
 
 func main() {
-	usage := `Usage:
+	usage := `Exterminate typos. Now.
+
+typokiller is a tool to find and fix typos in text files, source code, and documentation.
+
+Usage:
   typokiller read [options] PATH ...
   typokiller fix
-
-Interactive tool to find and fix typos in codebases.
 
 Options:
   -h --help     Show this usage help

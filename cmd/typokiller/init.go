@@ -16,7 +16,8 @@ const (
 )
 
 const (
-	projectBucket = "Project"
+	projectBucket   = "Project"
+	locationsBucket = "Locations"
 )
 
 // Init initializes a typokiller project. It creates a new database in the

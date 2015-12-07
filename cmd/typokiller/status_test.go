@@ -44,20 +44,40 @@ func TestStatus(t *testing.T) {
 		t.Fatalf("unexpected error: %v\n", err)
 	}
 
-	// Expected status of empty project.
-	var b bytes.Buffer
-	if err := statusTmpl.Execute(&b, status{
-		ExecutableName: m.ExecutableName,
-		ProjectName:    "My Project",
-	}); err != nil {
-		t.Fatalf("unexpected error: %v\n", err)
-	}
-
 	// Check status of empty project.
+	want := `Project: My Project
+Locations: (empty)
+Progress: 0% (fixed 0 out of 0 typos)
+
+Use 'typokiller add' to add locations to this project.
+`
 	if err := m.Status(); err != nil {
 		t.Fatalf("unexpected error: %v\n", err)
 	}
-	if got, want := m.Stdout.String(), b.String(); got != want {
+	if got := m.Stdout.String(); got != want {
+		t.Fatalf("'typokiller status' returned:\n%s\nwant:\n%s\n", got, want)
+	}
+
+	// Add paths.
+	if err := m.Add("txt", "/tmp/test/path", "/tmp/typokiller"); err != nil {
+		t.Fatalf("unexpected error: %v\n", err)
+	}
+
+	// Check status of non-empty project.
+	m.Stdout.Reset()
+	want = `Project: My Project
+Locations:
+	/tmp/test/path
+	/tmp/typokiller
+
+Progress: 0% (fixed 0 out of 0 typos)
+
+No files were read yet.
+`
+	if err := m.Status(); err != nil {
+		t.Fatalf("unexpected error: %v\n", err)
+	}
+	if got := m.Stdout.String(); got != want {
 		t.Fatalf("'typokiller status' returned:\n%s\nwant:\n%s\n", got, want)
 	}
 }

@@ -7,17 +7,21 @@ import (
 )
 
 const statusTxt = `Project: {{.ProjectName}}
-Locations: (empty)
+Locations:{{if not .Locations}} (empty){{else}}{{range .Locations}}
+	{{.}}{{end}}
+{{end}}
 Progress: 0% (fixed 0 out of 0 typos)
 
-Use '{{.ExecutableName}} add' to add locations to this project.
-`
+{{if .Locations}}No files were read yet.
+{{else}}Use '{{.ExecutableName}} add' to add locations to this project.
+{{end}}`
 
 var statusTmpl = template.Must(template.New("status").Parse(statusTxt))
 
 type status struct {
 	ExecutableName string
 	ProjectName    string
+	Locations      []string
 }
 
 // Status prints information about the project to m.Stdout.
@@ -28,18 +32,31 @@ func (m *Main) Status() error {
 	}
 	defer db.Close()
 
-	var name string
+	var (
+		name      string
+		locations []string
+	)
 	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(projectBucket))
 		if b == nil {
 			return ErrInvalidProject
 		}
 		name = string(b.Get([]byte("name")))
+		b = tx.Bucket([]byte(locationsBucket))
+		if b == nil {
+			// No locations were added.
+			return nil
+		}
+		c := b.Cursor()
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			locations = append(locations, string(k))
+		}
 		return nil
 	})
 
 	return statusTmpl.Execute(m.Stdout, status{
-		m.ExecutableName,
-		name,
+		ExecutableName: m.ExecutableName,
+		ProjectName:    name,
+		Locations:      locations,
 	})
 }

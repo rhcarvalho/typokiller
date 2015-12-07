@@ -44,21 +44,24 @@ typokiller is a tool to find and fix typos in text files, source code, and docum
 Usage:
   typokiller init [NAME]
   typokiller status
+  typokiller add [--format=txt|go|adoc] PATH ...
   typokiller read [options] PATH ...
   typokiller fix
 
 Options:
   -h --help     Show this usage help
-  --format=EXT  Document format [default: go]
+  --format=EXT  Document format [default: txt]
   --version     Show version
 
 Commands:
   init       Initializes a new typo-hunting project
   status     Reports project status
+  add        Add files or directories to the current project
   read       For each PATH, read the documentation of Go packages and outputs metadata to STDOUT
   fix        Reads spelling error information from STDIN and allows for interative patching
 
 Available formats:
+  txt        Plain text (default)
   go         Go source code
   adoc       AsciiDoc documents
 `
@@ -73,9 +76,14 @@ Available formats:
 		err = main.Init(name)
 	case args["status"]:
 		err = main.Status()
+	case args["add"]:
+		format, _ := args["--format"].(string)
+		paths := args["PATH"].([]string)
+		err = main.Add(format, paths...)
 	case args["read"]:
 		format := args["--format"].(string)
-		err = main.Read(format, args["PATH"].([]string)...)
+		paths := args["PATH"].([]string)
+		err = main.Read(format, paths...)
 	case args["fix"]:
 		err = main.Fix()
 	default:

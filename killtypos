@@ -1,2 +1,2 @@
 #!/bin/bash
-go install ./... && typokiller read "$@" | ./spellcheck.py | typokiller fix
+go install ./... && typokiller init && typokiller read "$@" | ./spellcheck.py | typokiller fix

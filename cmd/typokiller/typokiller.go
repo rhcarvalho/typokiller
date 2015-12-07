@@ -7,12 +7,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"syscall"
 
 	"github.com/docopt/docopt-go"
 	"github.com/rhcarvalho/typokiller/pkg/fix"
-	"github.com/rhcarvalho/typokiller/pkg/read"
 	"github.com/rhcarvalho/typokiller/pkg/types"
 )
 
@@ -45,12 +43,11 @@ Usage:
   typokiller init [NAME]
   typokiller status
   typokiller add [--format=txt|go|adoc] PATH ...
-  typokiller read [options] PATH ...
+  typokiller read [--format=txt|go|adoc] [PATH ...]
   typokiller fix
 
 Options:
   -h --help     Show this usage help
-  --format=EXT  Document format [default: txt]
   --version     Show version
 
 Commands:
@@ -81,7 +78,7 @@ Available formats:
 		paths := args["PATH"].([]string)
 		err = main.Add(format, paths...)
 	case args["read"]:
-		format := args["--format"].(string)
+		format, _ := args["--format"].(string)
 		paths := args["PATH"].([]string)
 		err = main.Read(format, paths...)
 	case args["fix"]:
@@ -99,35 +96,6 @@ Available formats:
 			os.Exit(1)
 		}
 	}
-}
-
-// Read reads the documentation in paths and outputs metadata to STDOUT.
-func (m *Main) Read(format string, paths ...string) error {
-	enc := json.NewEncoder(os.Stdout)
-	for _, path := range paths {
-		path, err := filepath.Abs(path)
-		if err != nil {
-			return err
-		}
-		var dirReader read.DirReader
-		switch format {
-		case "adoc":
-			dirReader = read.AsciiDocFormat{}
-		default:
-			dirReader = read.GoFormat{}
-		}
-		pkgs, err := dirReader.ReadDir(path)
-		if err != nil {
-			return err
-		}
-		for _, pkg := range pkgs {
-			err = enc.Encode(pkg)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 // Fix reads documentation metadata from STDIN and presents an interactive user

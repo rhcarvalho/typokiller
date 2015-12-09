@@ -1,6 +1,10 @@
 package types
 
-import "go/token"
+import (
+	"bytes"
+	"encoding/gob"
+	"go/token"
+)
 
 // Package holds the documentation of a Go package and a list of identifiers.
 // The identifiers are useful to avoid false positives when spellchecking the
@@ -42,3 +46,25 @@ const (
 	Ignore
 	Replace
 )
+
+// A Location holds information about a path in the file system.
+type Location struct {
+	Path   string
+	Format string
+	IsRead bool
+
+	// Packages is here temporarily, for compatibility.
+	Packages []*Package
+}
+
+func (l *Location) Serialize() ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(l)
+	return buf.Bytes(), err
+}
+
+func (l *Location) Deserialize(s []byte) error {
+	dec := gob.NewDecoder(bytes.NewBuffer(s))
+	return dec.Decode(l)
+}

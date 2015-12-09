@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/boltdb/bolt"
+	"github.com/rhcarvalho/typokiller/pkg/types"
 )
 
 // Add adds the files and directories in the list of paths to the current
@@ -21,8 +22,15 @@ func (m *Main) Add(format string, paths ...string) error {
 			return fmt.Errorf("add location: %s", err)
 		}
 		for _, path := range paths {
-			err := b.Put([]byte(path), []byte(format))
+			loc := types.Location{
+				Path:   path,
+				Format: format,
+			}
+			v, err := loc.Serialize()
 			if err != nil {
+				return err
+			}
+			if err := b.Put([]byte(path), v); err != nil {
 				return err
 			}
 		}

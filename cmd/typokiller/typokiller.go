@@ -44,6 +44,7 @@ Usage:
   typokiller status
   typokiller add [--format=txt|go|adoc] PATH ...
   typokiller read [--format=txt|go|adoc] [PATH ...]
+  typokiller check
   typokiller fix
 
 Options:
@@ -55,6 +56,7 @@ Commands:
   status     Reports project status
   add        Add files or directories to the current project
   read       For each PATH, read the documentation of Go packages and outputs metadata to STDOUT
+  check      Spell checks the locations previously read
   fix        Reads spelling error information from STDIN and allows for interative patching
 
 Available formats:
@@ -81,6 +83,8 @@ Available formats:
 		format, _ := args["--format"].(string)
 		paths := args["PATH"].([]string)
 		err = main.Read(format, paths...)
+	case args["check"]:
+		err = main.Check()
 	case args["fix"]:
 		err = main.Fix()
 	default:

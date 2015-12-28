@@ -15,7 +15,7 @@ func main() {
 		switch tab1 := w.(type) {
 		case widgets.Paragraph:
 			if e.Type == termbox.EventKey && e.Ch == 'e' {
-				return widgets.NewInput("New value:").
+				return widgets.NewInput("", tab1.Text).
 					Bind(func(w widgets.Widget, e termbox.Event) (widgets.Widget, bool) {
 					if e.Type == termbox.EventKey {
 						switch e.Key {

@@ -10,9 +10,11 @@ type Input struct {
 	handler func(Widget, termbox.Event) (Widget, bool)
 }
 
-func NewInput(label string) Input {
+func NewInput(label string, value string) Input {
 	return Input{
 		Label: label,
+		value: []rune(value),
+		pos:   len(value),
 	}
 }
 
@@ -22,7 +24,9 @@ func (in Input) Render(x, y, w, h int) {
 	for i, c = range in.Label {
 		termbox.SetCell(x+i, y, c, termbox.ColorDefault, termbox.ColorDefault)
 	}
-	i += 2
+	if len(in.Label) > 0 {
+		i += 2
+	}
 	for j, c = range in.value {
 		termbox.SetCell(x+i+j, y, c, termbox.ColorDefault, termbox.ColorDefault)
 	}

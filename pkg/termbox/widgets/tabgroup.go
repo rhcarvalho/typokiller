@@ -13,10 +13,10 @@ func NewTabGroup() TabGroup {
 	return TabGroup{}
 }
 
-func (tb TabGroup) Render(x, y, w, h int) {
-	tb.render(x, y, w, h)
-	if tb.selectedIndex >= 0 && tb.selectedIndex < len(tb.tabs) {
-		tb.tabs[tb.selectedIndex].Render(x+1, y+1, w-2, h-2)
+func (tg TabGroup) Render(x, y, w, h int) {
+	tg.render(x, y, w, h)
+	if tg.selectedIndex >= 0 && tg.selectedIndex < len(tg.tabs) {
+		tg.tabs[tg.selectedIndex].Render(x+1, y+1, w-2, h-2)
 	}
 }
 

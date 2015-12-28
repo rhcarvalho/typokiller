@@ -25,8 +25,18 @@ func (tg TabGroup) Bind(f func(Widget, termbox.Event) (Widget, error)) Widget {
 	return tg
 }
 
-func (tb TabGroup) Handle(e termbox.Event) (Widget, error) {
-	return tb.handler(tb, e)
+func (tg TabGroup) Handle(e termbox.Event) (Widget, error) {
+	if tg.selectedIndex >= 0 && tg.selectedIndex < len(tg.tabs) {
+		var err error
+		tg.tabs[tg.selectedIndex], err = tg.tabs[tg.selectedIndex].Handle(e)
+		if err != nil {
+			return tg, err
+		}
+	}
+	if tg.handler != nil {
+		return tg.handler(tg, e)
+	}
+	return tg, nil
 }
 
 func (tg TabGroup) AddTab(title string, view Widget) TabGroup {

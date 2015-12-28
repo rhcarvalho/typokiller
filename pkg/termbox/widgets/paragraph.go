@@ -4,7 +4,7 @@ import "github.com/nsf/termbox-go"
 
 type Paragraph struct {
 	Text    string
-	handler func(Widget, termbox.Event) (Widget, error)
+	handler func(Widget, termbox.Event) (Widget, bool)
 }
 
 func NewParagraph(text string) Paragraph {
@@ -38,14 +38,14 @@ func (p Paragraph) Render(x, y, w, h int) {
 	}
 }
 
-func (p Paragraph) Bind(f func(w Widget, e termbox.Event) (Widget, error)) Widget {
+func (p Paragraph) Bind(f func(w Widget, e termbox.Event) (Widget, bool)) Widget {
 	p.handler = f
 	return p
 }
 
-func (p Paragraph) Handle(e termbox.Event) (Widget, error) {
+func (p Paragraph) Handle(e termbox.Event) (Widget, bool) {
 	if p.handler != nil {
 		return p.handler(p, e)
 	}
-	return p, nil
+	return p, false
 }

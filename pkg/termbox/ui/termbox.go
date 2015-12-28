@@ -2,6 +2,8 @@ package ui
 
 import "github.com/nsf/termbox-go"
 
+var tb termboxer = defaultTermbox{}
+
 // termboxer is an interface covering the parts of the termbox API used in
 // typokiller.
 type termboxer interface {
@@ -32,26 +34,28 @@ type termboxer interface {
 	SetOutputMode(mode termbox.OutputMode) termbox.OutputMode
 }
 
-// tb implements termboxer.
-type tb struct{}
+// defaultTermbox implements termboxer.
+type defaultTermbox struct{}
 
-func (tb) Init() error { return termbox.Init() }
-func (tb) Close()      { termbox.Close() }
+func (defaultTermbox) Init() error { return termbox.Init() }
+func (defaultTermbox) Close()      { termbox.Close() }
 
-func (tb) SetCursor(x, y int) { termbox.SetCursor(x, y) }
-func (tb) HideCursor()        { termbox.HideCursor() }
+func (defaultTermbox) SetCursor(x, y int) { termbox.SetCursor(x, y) }
+func (defaultTermbox) HideCursor()        { termbox.HideCursor() }
 
-func (tb) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) { termbox.SetCell(x, y, ch, fg, bg) }
-func (tb) Size() (width int, height int)                       { return termbox.Size() }
-func (tb) Clear(fg, bg termbox.Attribute) error                { return termbox.Clear(fg, bg) }
-func (tb) Flush() error                                        { return termbox.Flush() }
+func (defaultTermbox) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
+	termbox.SetCell(x, y, ch, fg, bg)
+}
+func (defaultTermbox) Size() (width int, height int)        { return termbox.Size() }
+func (defaultTermbox) Clear(fg, bg termbox.Attribute) error { return termbox.Clear(fg, bg) }
+func (defaultTermbox) Flush() error                         { return termbox.Flush() }
 
-func (tb) PollEvent() termbox.Event { return termbox.PollEvent() }
-func (tb) Interrupt()               { termbox.Interrupt() }
+func (defaultTermbox) PollEvent() termbox.Event { return termbox.PollEvent() }
+func (defaultTermbox) Interrupt()               { termbox.Interrupt() }
 
-func (tb) SetInputMode(mode termbox.InputMode) termbox.InputMode {
+func (defaultTermbox) SetInputMode(mode termbox.InputMode) termbox.InputMode {
 	return termbox.SetInputMode(mode)
 }
-func (tb) SetOutputMode(mode termbox.OutputMode) termbox.OutputMode {
+func (defaultTermbox) SetOutputMode(mode termbox.OutputMode) termbox.OutputMode {
 	return termbox.SetOutputMode(mode)
 }

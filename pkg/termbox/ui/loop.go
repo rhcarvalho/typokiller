@@ -18,16 +18,14 @@ var (
 // Loop represents a UI loop that renders the current state on the screen and
 // handle events.
 type Loop struct {
-	termbox termboxer
 	view    widgets.Widget
-	handler func(Loop, termbox.Event) bool
+	handler func(Loop, termbox.Event) Loop
 }
 
 // NewLoop returns a new UI loop. Call its Start() method to start it.
 func NewLoop(view widgets.Widget) Loop {
 	return Loop{
-		termbox: tb{},
-		view:    view,
+		view: view,
 	}
 }
 
@@ -67,12 +65,14 @@ func (l Loop) Start() error {
 			case <-stop:
 				close(events)
 				return
-			case events <- l.termbox.PollEvent():
+			case events <- tb.PollEvent():
 			}
 		}
 	}()
 
+	// (Render -> Handle event) loop.
 	for {
+
 		err := l.render()
 		if err != nil {
 			return err
@@ -81,12 +81,7 @@ func (l Loop) Start() error {
 		if !ok {
 			return nil
 		}
-		if l, err = l.handle(e); err != nil {
-			if err == ErrExit {
-				return nil
-			}
-			return err
-		}
+		l = l.handle(e)
 	}
 }
 
@@ -102,51 +97,51 @@ func (l Loop) Stop() {
 	default:
 		// Semaphore is busy, interrupt pending termbox.PollEvent and
 		// send stop signal.
-		l.termbox.Interrupt()
+		tb.Interrupt()
 		stop <- struct{}{}
 	}
 
 }
 
-func (l Loop) Bind(f func(Loop, termbox.Event) bool) Loop {
+func (l Loop) Bind(f func(Loop, termbox.Event) Loop) Loop {
 	l.handler = f
 	return l
 }
 
 func (l Loop) setup() {
 	// Initialize termbox.
-	if err := l.termbox.Init(); err != nil {
+	if err := tb.Init(); err != nil {
 		panic(err)
 	}
-	l.termbox.HideCursor()
-	l.termbox.SetOutputMode(termbox.Output256)
+	tb.HideCursor()
+	tb.SetOutputMode(termbox.Output256)
 }
 
 func (l Loop) render() error {
 	if l.view == nil {
 		return ErrNoView
 	}
-	l.termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-	defer l.termbox.Flush()
-	w, h := l.termbox.Size()
+	tb.Clear(termbox.ColorDefault, termbox.ColorDefault)
+	defer tb.Flush()
+	w, h := tb.Size()
 	l.view.Render(0, 0, w, h)
 	return nil
 }
 
 func (l Loop) teardown() {
-	l.termbox.Close()
+	tb.Close()
 }
 
-func (l Loop) handle(e termbox.Event) (Loop, error) {
-	if l.handler != nil {
-		if !l.handler(l, e) {
-			return l, nil
+func (l Loop) handle(e termbox.Event) Loop {
+	if l.view != nil {
+		var stop bool
+		l.view, stop = l.view.Handle(e)
+		if stop {
+			return l
 		}
 	}
-	if l.view == nil {
-		return l, ErrNoView
+	if l.handler != nil {
+		l = l.handler(l, e)
 	}
-	var err error
-	l.view, err = l.view.Handle(e)
-	return l, err
+	return l
 }

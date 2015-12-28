@@ -6,7 +6,7 @@ type TabGroup struct {
 	titles        []string
 	tabs          []Widget
 	selectedIndex int
-	handler       func(Widget, termbox.Event) (Widget, error)
+	handler       func(Widget, termbox.Event) (Widget, bool)
 }
 
 func NewTabGroup() TabGroup {
@@ -20,23 +20,23 @@ func (tg TabGroup) Render(x, y, w, h int) {
 	}
 }
 
-func (tg TabGroup) Bind(f func(Widget, termbox.Event) (Widget, error)) Widget {
+func (tg TabGroup) Bind(f func(Widget, termbox.Event) (Widget, bool)) Widget {
 	tg.handler = f
 	return tg
 }
 
-func (tg TabGroup) Handle(e termbox.Event) (Widget, error) {
+func (tg TabGroup) Handle(e termbox.Event) (Widget, bool) {
 	if tg.selectedIndex >= 0 && tg.selectedIndex < len(tg.tabs) {
-		var err error
-		tg.tabs[tg.selectedIndex], err = tg.tabs[tg.selectedIndex].Handle(e)
-		if err != nil {
-			return tg, err
+		var stop bool
+		tg.tabs[tg.selectedIndex], stop = tg.tabs[tg.selectedIndex].Handle(e)
+		if stop {
+			return tg, stop
 		}
 	}
 	if tg.handler != nil {
 		return tg.handler(tg, e)
 	}
-	return tg, nil
+	return tg, false
 }
 
 func (tg TabGroup) AddTab(title string, view Widget) TabGroup {

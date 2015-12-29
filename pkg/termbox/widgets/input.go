@@ -1,6 +1,10 @@
 package widgets
 
-import "github.com/nsf/termbox-go"
+import (
+	"fmt"
+
+	"github.com/nsf/termbox-go"
+)
 
 // Input is a text input widget.
 type Input struct {
@@ -19,18 +23,19 @@ func NewInput(label string, value string) Input {
 }
 
 func (in Input) Render(x, y, w, h int) {
-	var i, j int
-	var c rune
-	for i, c = range in.Label {
-		termbox.SetCell(x+i, y, c, termbox.ColorDefault, termbox.ColorDefault)
-	}
+	var text string
+	offset := x
 	if len(in.Label) > 0 {
-		i += 2
+		text = fmt.Sprintf("%s %s", in.Label, string(in.value))
+		offset += len(in.Label) + 1
+	} else {
+		text = string(in.value)
 	}
-	for j, c = range in.value {
-		termbox.SetCell(x+i+j, y, c, termbox.ColorDefault, termbox.ColorDefault)
+	i, j, overflow := NewParagraph(text).render(x, y, w, h)
+	if overflow {
+		termbox.SetCell(i, j, '→', termbox.ColorWhite, termbox.ColorRed)
 	}
-	termbox.SetCursor(x+i+in.pos, y)
+	termbox.SetCursor(i, j)
 }
 
 func (in Input) Bind(f func(w Widget, e termbox.Event) (Widget, bool)) Widget {

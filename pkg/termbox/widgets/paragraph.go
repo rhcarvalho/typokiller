@@ -14,8 +14,13 @@ func NewParagraph(text string) Paragraph {
 }
 
 func (p Paragraph) Render(x, y, w, h int) {
-	i, j := x, y
-	overflow := false
+	if i, j, overflow := p.render(x, y, w, h); overflow {
+		termbox.SetCell(i, j, '…', termbox.ColorWhite, termbox.ColorRed)
+	}
+}
+
+func (p Paragraph) render(x, y, w, h int) (i, j int, overflow bool) {
+	i, j = x, y
 	for _, c := range p.Text {
 		if i >= x+w {
 			j++
@@ -33,9 +38,14 @@ func (p Paragraph) Render(x, y, w, h int) {
 		termbox.SetCell(i, j, c, termbox.ColorDefault, termbox.ColorDefault)
 		i++
 	}
-	if overflow {
-		termbox.SetCell(x+w-1, y+h-1, '…', termbox.ColorWhite, termbox.ColorRed)
+	if i >= x+w {
+		j++
+		i = x
 	}
+	if overflow {
+		i, j = x+w-1, y+h-1
+	}
+	return
 }
 
 func (p Paragraph) Bind(f func(w Widget, e termbox.Event) (Widget, bool)) Widget {

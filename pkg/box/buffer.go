@@ -110,3 +110,36 @@ func (b Block) CellBuffer() []termbox.Cell {
 	}
 	return cellBuf
 }
+
+// BoundedCellBufferers is a group of bounded cell bufferers. It implements
+// BoundedCellBufferer itself.
+type BoundedCellBufferers []BoundedCellBufferer
+
+// Bounds implements BoundedCellBufferer.
+func (bs BoundedCellBufferers) Bounds() image.Rectangle {
+	if len(bs) == 0 {
+		return image.ZR
+	}
+	r := bs[0].Bounds()
+	for _, b := range bs[1:] {
+		r = r.Union(b.Bounds())
+	}
+	return r
+}
+
+// CellBuffer implements BoundedCellBufferer.
+func (bs BoundedCellBufferers) CellBuffer() []termbox.Cell {
+	p := bs.Bounds().Size()
+	cellBuf := make([]termbox.Cell, p.X*p.Y)
+	m := bs.Bounds().Min
+	for _, b := range bs {
+		r := b.Bounds()
+		cb := b.CellBuffer()
+		for j := 0; j < r.Dy(); j++ {
+			k1 := r.Min.X - m.X + (r.Min.Y-m.Y+j)*p.X
+			k2 := j * r.Dx()
+			copy(cellBuf[k1:k1+r.Dx()], cb[k2:k2+r.Dx()])
+		}
+	}
+	return cellBuf
+}

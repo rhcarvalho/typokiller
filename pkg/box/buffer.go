@@ -143,3 +143,39 @@ func (bs BoundedCellBufferers) CellBuffer() []termbox.Cell {
 	}
 	return cellBuf
 }
+
+// A Row groups CellBufferers horizontally, stacking them side by side. Each
+// CellBufferer is bounded to fit a width proportional to its weight.
+type Row struct {
+	weights []uint8
+	cols    []CellBufferer
+}
+
+// Col adds a new column with a certain weight and returns a new Row.
+func (r Row) Col(weight uint8, cb CellBufferer) Row {
+	r.weights = append(r.weights, weight)
+	r.cols = append(r.cols, cb)
+	return r
+}
+
+// Fit returns a BoundedCellBufferer in which column widths are proportional to
+// their weights.
+func (r Row) Fit(rect image.Rectangle) BoundedCellBufferer {
+	rect = rect.Canon()
+	b := append(BoundedCellBufferers(nil), NewBlock(rect, nil))
+	var sum int
+	for _, w := range r.weights {
+		sum += int(w)
+	}
+	if sum == 0 {
+		// No column with weight > 0, return early.
+		return b
+	}
+	x0 := rect.Min.X
+	for i, cb := range r.cols {
+		x1 := x0 + int(r.weights[i])*rect.Dx()/sum
+		b = append(b, NewBlock(image.Rect(x0, rect.Min.Y, x1, rect.Max.Y), cb))
+		x0 = x1
+	}
+	return b
+}

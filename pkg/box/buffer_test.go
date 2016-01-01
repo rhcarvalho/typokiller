@@ -235,3 +235,160 @@ func TestBoundedCellBufferersQuick(t *testing.T) {
 		t.Errorf("%v: len(b.CellBuffer())=%v, p=%v", err, len(b.CellBuffer()), p)
 	}
 }
+
+func TestRow(t *testing.T) {
+	tests := []struct {
+		row  Row
+		rect image.Rectangle
+		want []termbox.Cell
+	}{
+		// Empty Row tests.
+		{
+			Row{},
+			image.ZR,
+			[]termbox.Cell{},
+		},
+		{
+			Row{},
+			image.Rect(42, 42, 42, 42),
+			[]termbox.Cell{},
+		},
+		{
+			Row{},
+			image.Rect(-1, -1, 3, 3),
+			make([]termbox.Cell, 16),
+		},
+		// Single Col tests.
+		{
+			Row{}.Col(0, nil),
+			image.ZR,
+			[]termbox.Cell{},
+		},
+		{
+			Row{}.Col(1, nil),
+			image.Rect(0, 0, 3, 3),
+			make([]termbox.Cell, 9),
+		},
+		{
+			Row{}.Col(1, NewBuffer("ABCD")),
+			image.Rect(0, 0, 3, 3),
+			[]termbox.Cell{
+				{Ch: 'A'}, {Ch: 'B'}, {Ch: 'C'},
+				{Ch: 'D'}, {}, {},
+				{}, {}, {},
+			},
+		},
+		{
+			Row{}.Col(100, NewBuffer("ABCDE")),
+			image.Rect(1, 1, 3, 3),
+			[]termbox.Cell{
+				{Ch: 'A'}, {Ch: 'B'},
+				{Ch: 'C'}, {Ch: 'D'},
+			},
+		},
+		{
+			// The Block should be positioned relative to the bounds
+			// we're fitting it in.
+			Row{}.Col(1, NewBlock(image.Rect(1, 1, 3, 3), NewBuffer("ABCDE"))),
+			image.Rect(2, 2, 6, 6),
+			[]termbox.Cell{
+				{}, {}, {}, {},
+				{}, {Ch: 'A'}, {Ch: 'B'}, {},
+				{}, {Ch: 'C'}, {Ch: 'D'}, {},
+				{}, {}, {}, {},
+			},
+		},
+		{
+			// The Block should be positioned relative to the bounds
+			// we're fitting it in.
+			Row{}.Col(1, NewBlock(image.Rect(-1, -1, 1, 1), NewBuffer("ABCDE"))),
+			image.Rect(2, 2, 6, 4),
+			[]termbox.Cell{
+				{Ch: 'D'}, {}, {}, {},
+				{}, {}, {}, {},
+			},
+		},
+		{
+			// The Block is wider than the column width, it will be
+			// truncated.
+			Row{}.Col(1, NewBlock(image.Rect(0, 0, 5, 1), NewBuffer("ABCDE"))),
+			image.Rect(2, 2, 6, 4),
+			[]termbox.Cell{
+				{Ch: 'A'}, {Ch: 'B'}, {Ch: 'C'}, {Ch: 'D'},
+				{}, {}, {}, {},
+			},
+		},
+		// Multiple Col tests.
+		{
+			Row{}.Col(0, nil).Col(0, nil).Col(0, nil),
+			image.ZR,
+			[]termbox.Cell{},
+		},
+		{
+			Row{}.Col(1, nil).Col(1, nil).Col(1, nil),
+			image.ZR,
+			[]termbox.Cell{},
+		},
+		{
+			Row{}.Col(1, nil).Col(1, nil).Col(1, nil),
+			image.Rect(2, 2, 3, 3),
+			make([]termbox.Cell, 1),
+		},
+		{
+			Row{}.Col(1, NewBuffer("XYZ")).Col(1, NewBuffer("MNO")),
+			image.Rect(0, 0, 10, 1),
+			[]termbox.Cell{
+				{Ch: 'X'}, {Ch: 'Y'}, {Ch: 'Z'}, {}, {}, // col #1
+				{Ch: 'M'}, {Ch: 'N'}, {Ch: 'O'}, {}, {}, // col #2
+			},
+		},
+		{
+			Row{}.Col(1, NewBuffer("XYZ")).Col(1, NewBuffer("MNO")),
+			image.Rect(0, 0, 4, 1),
+			[]termbox.Cell{
+				{Ch: 'X'}, {Ch: 'Y'}, // col #1
+				{Ch: 'M'}, {Ch: 'N'}, // col #2
+			},
+		},
+		{
+			Row{}.Col(1, NewBuffer("XYZ")).Col(1, NewBuffer("MNO")),
+			image.Rect(0, 0, 4, 2),
+			[]termbox.Cell{
+				{Ch: 'X'}, {Ch: 'Y'}, {Ch: 'M'}, {Ch: 'N'}, // row #1
+				{Ch: 'Z'}, {}, {Ch: 'O'}, {}, // row #2
+			},
+		},
+		{
+			// The columns do not fit perfectly, there's an extra
+			// empty column in the far left that could not be split
+			// between the two columns.
+			Row{}.Col(1, NewBuffer("XYZ")).Col(1, NewBuffer("MNO")),
+			image.Rect(0, 0, 5, 2),
+			[]termbox.Cell{
+				{Ch: 'X'}, {Ch: 'Y'}, {Ch: 'M'}, {Ch: 'N'}, {}, // row #1
+				{Ch: 'Z'}, {}, {Ch: 'O'}, {}, {}, // row #2
+			},
+		},
+		{
+			Row{}.
+				Col(1, NewBuffer("A")).
+				Col(0, NewBuffer("B")). // Hidden column.
+				Col(1, NewBuffer("C")),
+			image.Rect(0, 0, 3, 1),
+			[]termbox.Cell{
+				{Ch: 'A'}, {Ch: 'C'}, {},
+			},
+		},
+	}
+	for _, test := range tests {
+		got := test.row.Fit(test.rect)
+		gotBounds := got.Bounds()
+		if !reflect.DeepEqual(gotBounds, test.rect) {
+			t.Fatalf("%v.Fit(%v).Bounds() = %v, want %v", test.row, test.rect, gotBounds, test.rect)
+		}
+		gotCells := got.CellBuffer()
+		if !reflect.DeepEqual(gotCells, test.want) {
+			t.Fatalf("%v.Fit(%v).CellBuffer() = %v, want %v", test.row, test.rect, gotCells, test.want)
+		}
+	}
+}

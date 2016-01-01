@@ -4,6 +4,7 @@ import (
 	"image"
 	"reflect"
 	"testing"
+	"testing/quick"
 
 	"github.com/nsf/termbox-go"
 )
@@ -157,6 +158,53 @@ func TestBlock(t *testing.T) {
 			image.Rect(0, 0, 1, 1),
 			[]termbox.Cell{{Ch: 'P'}},
 		},
+		// []Block tests.
+		{
+			BoundedCellBufferers{},
+			image.ZR,
+			[]termbox.Cell{},
+		},
+		{
+			BoundedCellBufferers{
+				NewBlock(image.Rect(10, 20, 30, 40), nil),
+			},
+			image.Rect(10, 20, 30, 40),
+			make([]termbox.Cell, 400),
+		},
+		{
+			BoundedCellBufferers{
+				NewBlock(image.Rect(1, 1, 3, 3), NewBuffer("MNOP")),
+			},
+			image.Rect(1, 1, 3, 3),
+			[]termbox.Cell{
+				{Ch: 'M'}, {Ch: 'N'},
+				{Ch: 'O'}, {Ch: 'P'},
+			},
+		},
+		{
+			BoundedCellBufferers{
+				NewBlock(image.Rect(1, 1, 3, 3), NewBuffer("MNOP")),
+				NewBlock(image.Rect(2, 1, 4, 3), NewBuffer("1234")),
+			},
+			image.Rect(1, 1, 4, 3),
+			[]termbox.Cell{
+				{Ch: 'M'}, {Ch: '1'}, {Ch: '2'},
+				{Ch: 'O'}, {Ch: '3'}, {Ch: '4'},
+			},
+		},
+		{
+			BoundedCellBufferers{
+				NewBlock(image.Rect(1, 1, 3, 3), NewBuffer("MNOP")),
+				NewBlock(image.Rect(4, 0, 5, 4), NewBuffer("1234")),
+			},
+			image.Rect(1, 0, 5, 4),
+			[]termbox.Cell{
+				{}, {}, {}, {Ch: '1'},
+				{Ch: 'M'}, {Ch: 'N'}, {}, {Ch: '2'},
+				{Ch: 'O'}, {Ch: 'P'}, {}, {Ch: '3'},
+				{}, {}, {}, {Ch: '4'},
+			},
+		},
 	}
 	for _, test := range tests {
 		gotBounds := test.in.Bounds()
@@ -167,5 +215,23 @@ func TestBlock(t *testing.T) {
 		if !reflect.DeepEqual(gotCells, test.wantCells) {
 			t.Fatalf("%v.CellBuffer() = %v, want %v", test.in, gotCells, test.wantCells)
 		}
+	}
+}
+
+func TestBoundedCellBufferersQuick(t *testing.T) {
+	var b BoundedCellBufferer
+	var p image.Point
+	f := func(x0, y0, x1, y1, x2, y2, x3, y3 int8) bool {
+		r1 := image.Rect(int(x0), int(y0), int(x1), int(y1))
+		r2 := image.Rect(int(x2), int(y2), int(x3), int(y3))
+		b = BoundedCellBufferers{
+			NewBlock(r1, nil),
+			NewBlock(r2, nil),
+		}
+		p = r1.Union(r2).Size()
+		return len(b.CellBuffer()) == p.X*p.Y
+	}
+	if err := quick.Check(f, nil); err != nil {
+		t.Errorf("%v: len(b.CellBuffer())=%v, p=%v", err, len(b.CellBuffer()), p)
 	}
 }

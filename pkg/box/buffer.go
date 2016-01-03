@@ -144,38 +144,83 @@ func (bs BoundedCellBufferers) CellBuffer() []termbox.Cell {
 	return cellBuf
 }
 
-// A Row groups CellBufferers horizontally, stacking them side by side. Each
-// CellBufferer is bounded to fit a width proportional to its weight.
-type Row struct {
-	weights []uint8
-	cols    []CellBufferer
+// A Grid groups CellBufferers horizontally and/or vertically, stacking them
+// side by side.
+type Grid struct {
+	rows []row
 }
 
-// Col adds a new column with a certain weight and returns a new Row.
-func (r Row) Col(weight uint8, cb CellBufferer) Row {
-	r.weights = append(r.weights, weight)
-	r.cols = append(r.cols, cb)
-	return r
+// Col adds a new column with a certain weight and returns a new Grid. If called
+// before a call to Row, the new column is inserted in a new row with weight 1.
+func (g Grid) Col(weight uint8, cb CellBufferer) Grid {
+	if len(g.rows) == 0 {
+		g.rows = append(g.rows, row{1, nil})
+	}
+	row := &g.rows[len(g.rows)-1]
+	row.cols = append(row.cols, col{weight, cb})
+	return g
 }
 
-// Fit returns a BoundedCellBufferer in which column widths are proportional to
-// their weights.
-func (r Row) Fit(rect image.Rectangle) BoundedCellBufferer {
-	rect = rect.Canon()
-	b := append(BoundedCellBufferers(nil), NewBlock(rect, nil))
+// Row adds a new row with a certain weight and returns a new Grid.
+func (g Grid) Row(weight uint8) Grid {
+	g.rows = append(g.rows, row{weight: weight})
+	return g
+}
+
+// Fit returns a BoundedCellBufferer in which column widths and row heights are
+// proportional to their weights.
+func (g Grid) Fit(r image.Rectangle) BoundedCellBufferer {
+	return fitRows(r.Canon(), g.rows)
+}
+
+func fitRows(r image.Rectangle, rows []row) BoundedCellBufferer {
+	b := append(BoundedCellBufferers(nil), NewBlock(r, nil))
 	var sum int
-	for _, w := range r.weights {
-		sum += int(w)
+	for _, row := range rows {
+		sum += int(row.weight)
+	}
+	if sum == 0 {
+		// No row with weight > 0, return early.
+		return b
+	}
+	y0 := r.Min.Y
+	for _, row := range rows {
+		y1 := y0 + int(row.weight)*r.Dy()/sum
+		b = append(b, NewBlock(
+			image.Rect(r.Min.X, y0, r.Max.X, y1),
+			fitCols(r.Sub(r.Min), row.cols)))
+		y0 = y1
+	}
+	return b
+}
+
+func fitCols(r image.Rectangle, cols []col) BoundedCellBufferer {
+	b := append(BoundedCellBufferers(nil), NewBlock(r, nil))
+	var sum int
+	for _, c := range cols {
+		sum += int(c.weight)
 	}
 	if sum == 0 {
 		// No column with weight > 0, return early.
 		return b
 	}
-	x0 := rect.Min.X
-	for i, cb := range r.cols {
-		x1 := x0 + int(r.weights[i])*rect.Dx()/sum
-		b = append(b, NewBlock(image.Rect(x0, rect.Min.Y, x1, rect.Max.Y), cb))
+	x0 := r.Min.X
+	for _, c := range cols {
+		x1 := x0 + int(c.weight)*r.Dx()/sum
+		b = append(b, NewBlock(
+			image.Rect(x0, r.Min.Y, x1, r.Max.Y),
+			c.cb))
 		x0 = x1
 	}
 	return b
+}
+
+type row struct {
+	weight uint8
+	cols   []col
+}
+
+type col struct {
+	weight uint8
+	cb     CellBufferer
 }

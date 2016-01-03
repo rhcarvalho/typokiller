@@ -9,7 +9,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-func TestBuffer(t *testing.T) {
+func TestCellBufferer(t *testing.T) {
 	tests := []struct {
 		in   CellBufferer
 		want []termbox.Cell
@@ -66,7 +66,7 @@ func TestBuffer(t *testing.T) {
 	}
 }
 
-func TestBlock(t *testing.T) {
+func TestBoundedCellBufferer(t *testing.T) {
 	tests := []struct {
 		in         BoundedCellBufferer
 		wantBounds image.Rectangle
@@ -236,12 +236,23 @@ func TestBoundedCellBufferersQuick(t *testing.T) {
 	}
 }
 
-func TestGrid(t *testing.T) {
+func TestFitter(t *testing.T) {
 	tests := []struct {
-		grid Grid
-		rect image.Rectangle
-		want []termbox.Cell
+		fitter Fitter
+		rect   image.Rectangle
+		want   []termbox.Cell
 	}{
+		// Buffer and Block should implement Fitter.
+		{
+			NewBuffer("OK"),
+			image.Rect(0, 0, 1, 2),
+			[]termbox.Cell{{Ch: 'O'}, {Ch: 'K'}},
+		},
+		{
+			NewBlock(image.Rect(0, 0, 1, 2), NewBuffer("OK")),
+			image.Rect(0, 0, 2, 2),
+			[]termbox.Cell{{Ch: 'O'}, {}, {Ch: 'K'}, {}},
+		},
 		// Empty Grid tests.
 		{
 			Grid{},
@@ -519,14 +530,14 @@ func TestGrid(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got := test.grid.Fit(test.rect)
+		got := test.fitter.Fit(test.rect)
 		gotBounds := got.Bounds()
 		if !reflect.DeepEqual(gotBounds, test.rect) {
-			t.Fatalf("%v.Fit(%v).Bounds() = %v, want %v", test.grid, test.rect, gotBounds, test.rect)
+			t.Fatalf("%v.Fit(%v).Bounds() = %v, want %v", test.fitter, test.rect, gotBounds, test.rect)
 		}
 		gotCells := got.CellBuffer()
 		if !reflect.DeepEqual(gotCells, test.want) {
-			t.Fatalf("%v.Fit(%v).CellBuffer() = %v, want %v", test.grid, test.rect, gotCells, test.want)
+			t.Fatalf("%v.Fit(%v).CellBuffer() = %v, want %v", test.fitter, test.rect, gotCells, test.want)
 		}
 	}
 }

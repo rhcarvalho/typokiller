@@ -44,6 +44,11 @@ func (b Buffer) CellBuffer() []termbox.Cell {
 	return cellBuf
 }
 
+// Fit implements Fitter.
+func (b Buffer) Fit(r image.Rectangle) BoundedCellBufferer {
+	return NewBlock(r, b)
+}
+
 // CellBufferers groups together cell bufferers and implements the CellBufferer
 // interface itself.
 type CellBufferers []CellBufferer
@@ -109,6 +114,11 @@ func (b Block) CellBuffer() []termbox.Cell {
 		copy(cellBuf, b.CellBufferer.CellBuffer())
 	}
 	return cellBuf
+}
+
+// Fit implements Fitter.
+func (b Block) Fit(r image.Rectangle) BoundedCellBufferer {
+	return NewBlock(r, b)
 }
 
 // BoundedCellBufferers is a group of bounded cell bufferers. It implements
@@ -223,4 +233,10 @@ type row struct {
 type col struct {
 	weight uint8
 	cb     CellBufferer
+}
+
+// Fitter is an interface implemented by types that can produce a
+// BoundedCellBufferer fitting a given rectangle.
+type Fitter interface {
+	Fit(r image.Rectangle) BoundedCellBufferer
 }

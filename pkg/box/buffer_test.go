@@ -66,6 +66,33 @@ func TestCellBufferer(t *testing.T) {
 				{Ch: 'A'}, {Ch: 'B'}, {Ch: 'C'},
 				{Ch: 'X'}, {Ch: 'Y'}, {Ch: 'Z'}, {}},
 		},
+		// Colored buffer tests.
+		{
+			NewBuffer("Blue").Fg(termbox.ColorRed),
+			[]termbox.Cell{
+				{Ch: 'B', Fg: termbox.ColorRed},
+				{Ch: 'l', Fg: termbox.ColorRed},
+				{Ch: 'u', Fg: termbox.ColorRed},
+				{Ch: 'e', Fg: termbox.ColorRed},
+			},
+		},
+		{
+			NewBuffer("Blue").Bg(termbox.ColorRed),
+			[]termbox.Cell{
+				{Ch: 'B', Bg: termbox.ColorRed},
+				{Ch: 'l', Bg: termbox.ColorRed},
+				{Ch: 'u', Bg: termbox.ColorRed},
+				{Ch: 'e', Bg: termbox.ColorRed},
+			},
+		},
+		{
+			NewBuffer("B").
+				Fg(termbox.ColorRed).
+				Bg(termbox.ColorGreen),
+			[]termbox.Cell{{Ch: 'B',
+				Fg: termbox.ColorRed,
+				Bg: termbox.ColorGreen}},
+		},
 	}
 	for _, test := range tests {
 		got := test.in.CellBuffer()

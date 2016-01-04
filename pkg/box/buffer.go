@@ -49,6 +49,18 @@ func (b Buffer) Fit(r image.Rectangle) BoundedCellBufferer {
 	return NewBlock(r, b)
 }
 
+// Fg sets the foreground color and returns a new Buffer.
+func (b Buffer) Fg(fg termbox.Attribute) Buffer {
+	b.fg = fg
+	return b
+}
+
+// Bg sets the background color and returns a new Buffer.
+func (b Buffer) Bg(bg termbox.Attribute) Buffer {
+	b.bg = bg
+	return b
+}
+
 // CellBufferers groups together cell bufferers and implements the CellBufferer
 // interface itself.
 type CellBufferers []CellBufferer

@@ -242,7 +242,7 @@ func TestFitter(t *testing.T) {
 		rect   image.Rectangle
 		want   []termbox.Cell
 	}{
-		// Buffer and Block should implement Fitter.
+		// Buffer, Block and a mix of those should implement Fitter.
 		{
 			NewBuffer("OK"),
 			image.Rect(0, 0, 1, 2),
@@ -252,6 +252,22 @@ func TestFitter(t *testing.T) {
 			NewBlock(image.Rect(0, 0, 1, 2), NewBuffer("OK")),
 			image.Rect(0, 0, 2, 2),
 			[]termbox.Cell{{Ch: 'O'}, {}, {Ch: 'K'}, {}},
+		},
+		{
+			CellBufferers{NewBuffer("X"), NewBuffer("Y")},
+			image.Rect(0, 0, 1, 2),
+			[]termbox.Cell{{Ch: 'X'}, {Ch: 'Y'}},
+		},
+		{
+			BoundedCellBufferers{
+				NewBlock(image.Rect(4, 0, 5, 2), NewBuffer("OK")),
+				NewBlock(image.Rect(0, 0, 4, 1), NewBuffer("Very")),
+			},
+			image.Rect(0, 0, 5, 2),
+			[]termbox.Cell{
+				{Ch: 'V'}, {Ch: 'e'}, {Ch: 'r'}, {Ch: 'y'}, {Ch: 'O'},
+				{}, {}, {}, {}, {Ch: 'K'},
+			},
 		},
 		// Empty Grid tests.
 		{

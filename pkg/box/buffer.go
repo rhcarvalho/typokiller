@@ -62,6 +62,11 @@ func (bs CellBufferers) CellBuffer() []termbox.Cell {
 	return cellBuf
 }
 
+// Fit implements Fitter.
+func (bs CellBufferers) Fit(r image.Rectangle) BoundedCellBufferer {
+	return NewBlock(r, bs)
+}
+
 // A BoundedCellBufferer is a CellBufferer with rectangular bounds. Bounds make
 // the cell buffer fit a certain number of lines and columns. The number of
 // cells returned by CellBuffer() is the area of the rectangle.
@@ -152,6 +157,11 @@ func (bs BoundedCellBufferers) CellBuffer() []termbox.Cell {
 		}
 	}
 	return cellBuf
+}
+
+// Fit implements Fitter.
+func (bs BoundedCellBufferers) Fit(r image.Rectangle) BoundedCellBufferer {
+	return NewBlock(r, bs)
 }
 
 // A Grid groups CellBufferers horizontally and/or vertically, stacking them

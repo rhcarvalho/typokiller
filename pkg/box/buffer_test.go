@@ -57,6 +57,15 @@ func TestCellBufferer(t *testing.T) {
 				{Ch: 'A'}, {Ch: 'B'}, {Ch: 'C'},
 				{Ch: 'X'}, {Ch: 'Y'}, {Ch: 'Z'}},
 		},
+		{
+			CellBufferers{
+				NewBuffer("ABC"),
+				NewBlock(image.Rect(1, 1, 3, 3), NewBuffer("XYZ")),
+			},
+			[]termbox.Cell{
+				{Ch: 'A'}, {Ch: 'B'}, {Ch: 'C'},
+				{Ch: 'X'}, {Ch: 'Y'}, {Ch: 'Z'}, {}},
+		},
 	}
 	for _, test := range tests {
 		got := test.in.CellBuffer()

@@ -128,7 +128,34 @@ func (b Block) CellBuffer() []termbox.Cell {
 			copy(cellBuf[k1:k1+ri.Dx()], cb[k2:k2+ri.Dx()])
 		}
 	} else if b.CellBufferer != nil {
-		copy(cellBuf, b.CellBufferer.CellBuffer())
+		// Instead of copying cells at once, copy one-by-one to handle
+		// line breaks.
+		//copy(cellBuf, b.CellBufferer.CellBuffer())
+		buf := b.CellBufferer.CellBuffer()
+		p := 0
+	loop:
+		for j := 0; j < b.Dy(); j++ {
+			for i := 0; i < b.Dx(); i++ {
+				// Stop sooner if buf is fully consumed.
+				if p >= len(buf) {
+					break loop
+				}
+				// A line break is consumed and makes us jump to
+				// the next line.
+				if buf[p].Ch == '\n' {
+					p++
+					break
+				}
+				// Copy a cell and advance the index p.
+				cellBuf[i+j*b.Dx()] = buf[p]
+				p++
+				// Ignore an upcoming line break if we're at the
+				// end of a line.
+				if i == b.Dx()-1 && p < len(buf) && buf[p].Ch == '\n' {
+					p++
+				}
+			}
+		}
 	}
 	return cellBuf
 }

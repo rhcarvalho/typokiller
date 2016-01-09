@@ -241,6 +241,23 @@ func TestBoundedCellBufferer(t *testing.T) {
 				{}, {}, {}, {Ch: '4'},
 			},
 		},
+		// Newline char tests.
+		{
+			NewBlock(image.Rect(0, 0, 2, 2), NewBuffer("M\nNO")),
+			image.Rect(0, 0, 2, 2),
+			[]termbox.Cell{
+				{Ch: 77}, {},
+				{Ch: 78}, {Ch: 79},
+			},
+		},
+		{
+			NewBlock(image.Rect(0, 0, 2, 2), NewBuffer("MN\nO")),
+			image.Rect(0, 0, 2, 2),
+			[]termbox.Cell{
+				{Ch: 77}, {Ch: 78},
+				{Ch: 79}, {},
+			},
+		},
 	}
 	for _, test := range tests {
 		gotBounds := test.in.Bounds()

@@ -179,82 +179,92 @@ func (bs BoundedCellBufferers) Fit(r image.Rectangle) BoundedCellBufferer {
 // A Grid groups CellBufferers horizontally and/or vertically, stacking them
 // side by side.
 type Grid struct {
-	rows []row
+	Rows GridRows
 }
 
 // Col adds a new column with a certain weight and returns a new Grid. If called
 // before a call to Row, the new column is inserted in a new row with weight 1.
 func (g Grid) Col(weight uint8, cb CellBufferer) Grid {
-	if len(g.rows) == 0 {
-		g.rows = append(g.rows, row{1, nil})
+	if len(g.Rows) == 0 {
+		g.Rows = append(g.Rows, GridRow{1, nil})
 	}
-	row := &g.rows[len(g.rows)-1]
-	row.cols = append(row.cols, col{weight, cb})
+	row := &g.Rows[len(g.Rows)-1]
+	row.Cols = append(row.Cols, GridCol{weight, cb})
 	return g
 }
 
 // Row adds a new row with a certain weight and returns a new Grid.
 func (g Grid) Row(weight uint8) Grid {
-	g.rows = append(g.rows, row{weight: weight})
+	g.Rows = append(g.Rows, GridRow{Weight: weight})
 	return g
 }
 
 // Fit returns a BoundedCellBufferer in which column widths and row heights are
 // proportional to their weights.
 func (g Grid) Fit(r image.Rectangle) BoundedCellBufferer {
-	return fitRows(r.Canon(), g.rows)
+	return g.Rows.Fit(r.Canon())
 }
 
-func fitRows(r image.Rectangle, rows []row) BoundedCellBufferer {
+// GridRow represents a row in a Grid.
+type GridRow struct {
+	Weight uint8
+	Cols   GridCols
+}
+
+// GridRows is a list of GridRow that implements Fitter.
+type GridRows []GridRow
+
+// Fit implements Fitter.
+func (gr GridRows) Fit(r image.Rectangle) BoundedCellBufferer {
 	b := append(BoundedCellBufferers(nil), NewBlock(r, nil))
 	var sum int
-	for _, row := range rows {
-		sum += int(row.weight)
+	for _, row := range gr {
+		sum += int(row.Weight)
 	}
 	if sum == 0 {
 		// No row with weight > 0, return early.
 		return b
 	}
 	y0 := r.Min.Y
-	for _, row := range rows {
-		y1 := y0 + int(row.weight)*r.Dy()/sum
+	for _, row := range gr {
+		y1 := y0 + int(row.Weight)*r.Dy()/sum
 		b = append(b, NewBlock(
 			image.Rect(r.Min.X, y0, r.Max.X, y1),
-			fitCols(r.Sub(r.Min), row.cols)))
+			row.Cols.Fit(r.Sub(r.Min))))
 		y0 = y1
 	}
 	return b
 }
 
-func fitCols(r image.Rectangle, cols []col) BoundedCellBufferer {
+// GridCol represents a column in a Grid.
+type GridCol struct {
+	Weight uint8
+	CellBufferer
+}
+
+// GridCols is a list of GridCol that implements Fitter.
+type GridCols []GridCol
+
+// Fit implements Fitter.
+func (gc GridCols) Fit(r image.Rectangle) BoundedCellBufferer {
 	b := append(BoundedCellBufferers(nil), NewBlock(r, nil))
 	var sum int
-	for _, c := range cols {
-		sum += int(c.weight)
+	for _, c := range gc {
+		sum += int(c.Weight)
 	}
 	if sum == 0 {
 		// No column with weight > 0, return early.
 		return b
 	}
 	x0 := r.Min.X
-	for _, c := range cols {
-		x1 := x0 + int(c.weight)*r.Dx()/sum
+	for _, c := range gc {
+		x1 := x0 + int(c.Weight)*r.Dx()/sum
 		b = append(b, NewBlock(
 			image.Rect(x0, r.Min.Y, x1, r.Max.Y),
-			c.cb))
+			c.CellBufferer))
 		x0 = x1
 	}
 	return b
-}
-
-type row struct {
-	weight uint8
-	cols   []col
-}
-
-type col struct {
-	weight uint8
-	cb     CellBufferer
 }
 
 // Fitter is an interface implemented by types that can produce a

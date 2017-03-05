@@ -3,6 +3,8 @@ typokiller
 
 Exterminate typos. Now.
 
+![typokiller screenshot](screenshot.png)
+
 `typokiller` is a tool for finding and fixing typos in text files, from source
 code comments to documentation.
 
